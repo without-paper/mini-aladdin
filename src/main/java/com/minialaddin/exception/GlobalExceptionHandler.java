@@ -45,4 +45,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest()
                 .body(Map.of("error", message));
     }
+
+
+    @ExceptionHandler(TradeRejectedException.class)
+    public ResponseEntity<Map<String, String>> handleTradeRejected(
+            TradeRejectedException ex
+    ) {
+        return ResponseEntity
+                .badRequest()
+                .body(Map.of("error", ex.getMessage()));
+    }
 }

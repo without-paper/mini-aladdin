@@ -1,9 +1,14 @@
 
 package com.minialaddin.controller;
 
+import com.minialaddin.dto.CreateTradeRequest;
 import com.minialaddin.dto.TradeResponse;
 import com.minialaddin.service.TradeService;
 
+import jakarta.validation.Valid;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,5 +28,20 @@ public class TradeController {
             @PathVariable Long portfolioId
     ) {
         return service.getTrades(portfolioId);
+    }
+
+    @PostMapping
+    public ResponseEntity<TradeResponse> createTrade(
+            @PathVariable Long portfolioId,
+            @Valid @RequestBody CreateTradeRequest request
+    ) {
+        TradeResponse result = service.executeTrade(
+                portfolioId,
+                request
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(result);
     }
 }
