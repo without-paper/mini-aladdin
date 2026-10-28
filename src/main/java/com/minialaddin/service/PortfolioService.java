@@ -1,25 +1,25 @@
 
 package com.minialaddin.service;
 
+import com.minialaddin.exception.PortfolioNotFoundException;
 import com.minialaddin.model.Portfolio;
 import com.minialaddin.repository.PortfolioRepository;
-import com.minialaddin.exception.PortfolioNotFoundException;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class PortfolioService {
 
     private final PortfolioRepository repository;
-    private final AtomicLong nextId = new AtomicLong(1);
 
     public PortfolioService(PortfolioRepository repository) {
         this.repository = repository;
     }
 
+    @Transactional
     public Portfolio createPortfolio(
             String name,
             BigDecimal initialCash
@@ -37,10 +37,7 @@ public class PortfolioService {
             );
         }
 
-        Long id = nextId.getAndIncrement();
-
         Portfolio portfolio = new Portfolio(
-                id,
                 name,
                 initialCash
         );
@@ -48,6 +45,7 @@ public class PortfolioService {
         return repository.save(portfolio);
     }
 
+    @Transactional(readOnly = true)
     public Portfolio getPortfolio(Long id) {
         return repository.findById(id)
                 .orElseThrow(() ->

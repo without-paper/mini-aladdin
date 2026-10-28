@@ -12,9 +12,9 @@ public record PortfolioResponse(
 ) {
     public static PortfolioResponse from(Portfolio portfolio) {
         return new PortfolioResponse(
-                portfolio.id(),
-                portfolio.name(),
-                portfolio.initialCash()
+                portfolio.getId(),
+                portfolio.getName(),
+                portfolio.getInitialCash()
         );
     }
 }

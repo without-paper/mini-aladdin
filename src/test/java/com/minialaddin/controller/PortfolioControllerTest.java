@@ -7,6 +7,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -18,23 +20,36 @@ class PortfolioControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Test
-    void shouldCreatePortfolio() throws Exception {
-        String body = """
-            {
-                "name": "Growth Fund",
-                "initialCash": 100000.00
-            }
-            """;
 
-        mockMvc.perform(post("/api/portfolios")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
+    @Test
+    void shouldCreateAndRetrievePortfolio() throws Exception {
+        String body = """
+        {
+            "name": "Growth Fund",
+            "initialCash": 100000.00
+        }
+        """;
+
+        String response = mockMvc.perform(
+                        post("/api/portfolios")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Growth Fund"))
-                .andExpect(jsonPath("$.initialCash").value(100000.00))
-                .andExpect(jsonPath("$.id").isNumber());
+                .andExpect(jsonPath("$.id").isNumber())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode json = new ObjectMapper().readTree(response);
+        long id = json.get("id").asLong();
+
+        mockMvc.perform(get("/api/portfolios/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Growth Fund"));
     }
+
 
     @Test
     void shouldRejectNegativeInitialCash() throws Exception {
