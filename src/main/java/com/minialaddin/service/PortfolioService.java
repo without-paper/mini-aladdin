@@ -2,20 +2,23 @@
 package com.minialaddin.service;
 
 import com.minialaddin.model.Portfolio;
+import com.minialaddin.repository.PortfolioRepository;
+import com.minialaddin.exception.PortfolioNotFoundException;
+
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class PortfolioService {
 
-    private final Map<Long, Portfolio> portfolios =
-            new ConcurrentHashMap<>();
-
+    private final PortfolioRepository repository;
     private final AtomicLong nextId = new AtomicLong(1);
+
+    public PortfolioService(PortfolioRepository repository) {
+        this.repository = repository;
+    }
 
     public Portfolio createPortfolio(
             String name,
@@ -23,7 +26,7 @@ public class PortfolioService {
     ) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException(
-                    "Portfolio name cannot be empty"
+                    "Portfolio name cannot be blank"
             );
         }
 
@@ -42,12 +45,13 @@ public class PortfolioService {
                 initialCash
         );
 
-        portfolios.put(id, portfolio);
-
-        return portfolio;
+        return repository.save(portfolio);
     }
 
     public Portfolio getPortfolio(Long id) {
-        return portfolios.get(id);
+        return repository.findById(id)
+                .orElseThrow(() ->
+                        new PortfolioNotFoundException(id)
+                );
     }
 }

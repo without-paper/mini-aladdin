@@ -1,6 +1,11 @@
+
 package com.minialaddin.service;
 
 import com.minialaddin.model.Portfolio;
+import com.minialaddin.repository.InMemoryPortfolioRepository;
+import com.minialaddin.exception.PortfolioNotFoundException;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -9,10 +14,17 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class PortfolioServiceTest {
 
+    private PortfolioService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new PortfolioService(
+                new InMemoryPortfolioRepository()
+        );
+    }
+
     @Test
     void shouldCreatePortfolioSuccessfully() {
-        PortfolioService service = new PortfolioService();
-
         Portfolio portfolio = service.createPortfolio(
                 "Growth Fund",
                 new BigDecimal("100000.00")
@@ -20,6 +32,7 @@ class PortfolioServiceTest {
 
         assertEquals(1L, portfolio.id());
         assertEquals("Growth Fund", portfolio.name());
+
         assertEquals(
                 0,
                 new BigDecimal("100000.00")
@@ -34,8 +47,6 @@ class PortfolioServiceTest {
 
     @Test
     void shouldRejectNegativeInitialCash() {
-        PortfolioService service = new PortfolioService();
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> service.createPortfolio(
@@ -46,9 +57,21 @@ class PortfolioServiceTest {
     }
 
     @Test
-    void shouldReturnNullForUnknownPortfolio() {
-        PortfolioService service = new PortfolioService();
+    void shouldRejectBlankName() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.createPortfolio(
+                        " ",
+                        BigDecimal.ZERO
+                )
+        );
+    }
 
-        assertNull(service.getPortfolio(999L));
+    @Test
+    void shouldThrowWhenPortfolioDoesNotExist() {
+        assertThrows(
+                PortfolioNotFoundException.class,
+                () -> service.getPortfolio(999L)
+        );
     }
 }

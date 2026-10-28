@@ -1,14 +1,16 @@
 
 package com.minialaddin.controller;
 
+import com.minialaddin.dto.CreatePortfolioRequest;
+import com.minialaddin.dto.PortfolioResponse;
 import com.minialaddin.model.Portfolio;
 import com.minialaddin.service.PortfolioService;
+
+import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/portfolios")
@@ -20,14 +22,9 @@ public class PortfolioController {
         this.service = service;
     }
 
-    public record CreatePortfolioRequest(
-            String name,
-            BigDecimal initialCash
-    ) {}
-
     @PostMapping
-    public ResponseEntity<Portfolio> create(
-            @RequestBody CreatePortfolioRequest request
+    public ResponseEntity<PortfolioResponse> create(
+            @Valid @RequestBody CreatePortfolioRequest request
     ) {
         Portfolio portfolio = service.createPortfolio(
                 request.name(),
@@ -36,19 +33,17 @@ public class PortfolioController {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(portfolio);
+                .body(PortfolioResponse.from(portfolio));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Portfolio> getById(
+    public ResponseEntity<PortfolioResponse> getById(
             @PathVariable Long id
     ) {
         Portfolio portfolio = service.getPortfolio(id);
 
-        if (portfolio == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(portfolio);
+        return ResponseEntity.ok(
+                PortfolioResponse.from(portfolio)
+        );
     }
 }
