@@ -38,8 +38,8 @@ class TradeServiceTest {
         portfolioRepository = mock(PortfolioRepository.class);
 
         service = new TradeService(
-                tradeRepository,
-                portfolioRepository
+                portfolioRepository,
+                tradeRepository
         );
 
         when(tradeRepository.findByPortfolioIdAndRequestKey(

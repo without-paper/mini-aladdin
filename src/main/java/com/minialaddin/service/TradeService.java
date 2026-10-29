@@ -2,45 +2,60 @@
 package com.minialaddin.service;
 
 import com.minialaddin.dto.CreateTradeRequest;
+import com.minialaddin.dto.TradeExecutionResult;
 import com.minialaddin.dto.TradeResponse;
+
+import com.minialaddin.exception.IdempotencyConflictException;
 import com.minialaddin.exception.PortfolioNotFoundException;
 import com.minialaddin.exception.TradeRejectedException;
+
 import com.minialaddin.model.Portfolio;
 import com.minialaddin.model.Trade;
 import com.minialaddin.model.TradeSide;
+
 import com.minialaddin.repository.PortfolioRepository;
 import com.minialaddin.repository.TradeRepository;
-import com.minialaddin.dto.TradeExecutionResult;
-import com.minialaddin.exception.IdempotencyConflictException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Locale;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+
 import java.util.HexFormat;
+import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
 public class TradeService {
 
-    private final TradeRepository tradeRepository;
+    private static final Logger log =
+            LoggerFactory.getLogger(TradeService.class);
+
     private final PortfolioRepository portfolioRepository;
+    private final TradeRepository tradeRepository;
 
     public TradeService(
-            TradeRepository tradeRepository,
-            PortfolioRepository portfolioRepository
+            PortfolioRepository portfolioRepository,
+            TradeRepository tradeRepository
     ) {
-        this.tradeRepository = tradeRepository;
         this.portfolioRepository = portfolioRepository;
+        this.tradeRepository = tradeRepository;
     }
+
+    // =========================================================
+    // GET: Retrieve all trades of a portfolio
+    // =========================================================
 
     @Transactional(readOnly = true)
     public List<TradeResponse> getTrades(Long portfolioId) {
+
         if (!portfolioRepository.existsById(portfolioId)) {
             throw new PortfolioNotFoundException(portfolioId);
         }
@@ -52,6 +67,9 @@ public class TradeService {
                 .toList();
     }
 
+    // =========================================================
+    // POST: Execute a trade with idempotency protection
+    // =========================================================
 
     @Transactional
     public TradeExecutionResult executeTrade(
@@ -59,73 +77,118 @@ public class TradeService {
             CreateTradeRequest request,
             String requestKey
     ) {
-        // 1. Validate the idempotency key.
+
+        // -----------------------------------------------------
+        // 1. Validate the idempotency key
+        // -----------------------------------------------------
+
         if (requestKey == null ||
                 !requestKey.matches("[A-Za-z0-9_-]{8,128}")) {
+
             throw new TradeRejectedException(
                     "Invalid Idempotency-Key"
             );
         }
 
-        // 2. Validate basic request fields.
-        if (request == null ||
-                request.symbol() == null ||
-                request.side() == null ||
-                request.quantity() == null ||
-                request.price() == null) {
+        if (request == null) {
             throw new TradeRejectedException(
-                    "Invalid trade request"
+                    "Trade request cannot be null"
             );
         }
 
-        String symbol = request.symbol()
-                .trim()
-                .toUpperCase(Locale.ROOT);
+        // -----------------------------------------------------
+        // 2. Normalise and validate the trade request
+        // -----------------------------------------------------
 
+        String symbol = normalizeSymbol(request.symbol());
+
+        TradeSide side = request.side();
         BigDecimal quantity = request.quantity();
         BigDecimal price = request.price();
 
-        if (!symbol.matches("[A-Z][A-Z0-9.]{0,19}")) {
-            throw new TradeRejectedException("Invalid symbol");
+        if (side == null) {
+            throw new TradeRejectedException(
+                    "Trade side is required"
+            );
         }
 
-        if (quantity.signum() <= 0 ||
-                quantity.stripTrailingZeros().scale() > 0 ||
-                quantity.precision() - quantity.scale() > 19) {
-            throw new TradeRejectedException("Invalid quantity");
+        if (quantity == null ||
+                quantity.signum() <= 0 ||
+                quantity.scale() > 0 ||
+                quantity.precision() > 19) {
+
+            throw new TradeRejectedException(
+                    "Quantity must be a positive integer"
+            );
         }
 
-        if (price.signum() <= 0 ||
+        if (price == null ||
+                price.signum() <= 0 ||
                 price.scale() > 2 ||
                 price.precision() - price.scale() > 17) {
-            throw new TradeRejectedException("Invalid price");
+
+            throw new TradeRejectedException(
+                    "Invalid trade price"
+            );
         }
 
-        // 3. Lock BEFORE checking previous requests or cash.
+        // -----------------------------------------------------
+        // 3. Create a canonical fingerprint
+        // -----------------------------------------------------
+
+        String fingerprint = calculateFingerprint(
+                symbol,
+                side,
+                quantity,
+                price
+        );
+
+        // -----------------------------------------------------
+        // 4. Lock the portfolio row
+        //
+        // This serialises trade execution for this portfolio.
+        // -----------------------------------------------------
+
         Portfolio portfolio = portfolioRepository
                 .findByIdForUpdate(portfolioId)
                 .orElseThrow(() ->
                         new PortfolioNotFoundException(portfolioId)
                 );
 
-        // 4. Check idempotency inside the transaction.
-        String hash = fingerprint(
-                symbol, request.side(), quantity, price
-        );
+        // -----------------------------------------------------
+        // 5. Idempotency check AFTER acquiring the lock
+        // -----------------------------------------------------
 
-        Optional<Trade> previous =
+        Optional<Trade> existingTrade =
                 tradeRepository.findByPortfolioIdAndRequestKey(
-                        portfolioId, requestKey
+                        portfolioId,
+                        requestKey
                 );
 
-        if (previous.isPresent()) {
-            Trade existing = previous.get();
+        if (existingTrade.isPresent()) {
 
-            if (!hash.equals(existing.getRequestFingerprint())) {
+            Trade existing = existingTrade.get();
+
+            if (!fingerprint.equals(
+                    existing.getRequestFingerprint()
+            )) {
+
+                log.warn(
+                        "Idempotency conflict: portfolioId={}",
+                        portfolioId
+                );
+
                 throw new IdempotencyConflictException(
-                        "Idempotency key was used with different parameters"
+                        "Idempotency-Key was already used " +
+                                "with a different request"
                 );
             }
+
+            log.info(
+                    "Idempotent trade replay: portfolioId={}, tradeId={}",
+                    portfolioId,
+                    existing.getId()
+            );
 
             return new TradeExecutionResult(
                     TradeResponse.from(existing),
@@ -133,65 +196,135 @@ public class TradeService {
             );
         }
 
-        // 5. Read trade history while holding the lock.
+        // -----------------------------------------------------
+        // 6. Load historical trades
+        // -----------------------------------------------------
+
         List<Trade> history = tradeRepository
-                .findByPortfolioIdOrderByExecutedAtAscIdAsc(portfolioId);
+                .findByPortfolioIdOrderByExecutedAtAscIdAsc(
+                        portfolioId
+                );
+
+        // -----------------------------------------------------
+        // 7. Calculate current cash and symbol position
+        // -----------------------------------------------------
 
         BigDecimal availableCash = portfolio.getInitialCash();
         BigDecimal currentPosition = BigDecimal.ZERO;
 
-        for (Trade previousTrade : history) {
-            BigDecimal amount = previousTrade.getQuantity()
-                    .multiply(previousTrade.getPrice());
+        for (Trade trade : history) {
 
-            if (previousTrade.getSide() == TradeSide.BUY) {
+            BigDecimal amount = trade.getQuantity()
+                    .multiply(trade.getPrice());
+
+            if (trade.getSide() == TradeSide.BUY) {
+
                 availableCash = availableCash.subtract(amount);
-            } else {
+
+            } else if (trade.getSide() == TradeSide.SELL) {
+
                 availableCash = availableCash.add(amount);
+
+            } else {
+                throw new IllegalStateException(
+                        "Invalid historical trade side"
+                );
             }
 
-            if (previousTrade.getSymbol().equalsIgnoreCase(symbol)) {
-                if (previousTrade.getSide() == TradeSide.BUY) {
+            if (symbol.equals(trade.getSymbol())) {
+
+                if (trade.getSide() == TradeSide.BUY) {
+
                     currentPosition = currentPosition.add(
-                            previousTrade.getQuantity()
+                            trade.getQuantity()
                     );
+
                 } else {
+
                     currentPosition = currentPosition.subtract(
-                            previousTrade.getQuantity()
+                            trade.getQuantity()
                     );
                 }
             }
         }
 
-        // 6. Apply business constraints.
-        BigDecimal amount = quantity.multiply(price);
+        // -----------------------------------------------------
+        // 8. Validate the new BUY or SELL
+        // -----------------------------------------------------
 
-        if (request.side() == TradeSide.BUY) {
-            if (availableCash.compareTo(amount) < 0) {
-                throw new TradeRejectedException("Insufficient cash");
-            }
-        } else if (request.side() == TradeSide.SELL) {
-            if (currentPosition.compareTo(quantity) < 0) {
+        BigDecimal tradeAmount = quantity.multiply(price);
+
+        if (side == TradeSide.BUY) {
+
+            if (availableCash.compareTo(tradeAmount) < 0) {
+
+                log.warn(
+                        "Trade rejected: insufficient cash, portfolioId={}, symbol={}",
+                        portfolioId,
+                        symbol
+                );
+
                 throw new TradeRejectedException(
-                        "Insufficient position for " + symbol
+                        "Insufficient cash"
                 );
             }
+
+        } else if (side == TradeSide.SELL) {
+
+            if (currentPosition.compareTo(quantity) < 0) {
+
+                log.warn(
+                        "Trade rejected: insufficient position, portfolioId={}, symbol={}",
+                        portfolioId,
+                        symbol
+                );
+
+                throw new TradeRejectedException(
+                        "Insufficient position"
+                );
+            }
+
         } else {
-            throw new TradeRejectedException("Unsupported trade side");
+
+            throw new TradeRejectedException(
+                    "Unsupported trade side"
+            );
         }
 
-        // 7. Persist accepted trade and its idempotency key together.
+        // -----------------------------------------------------
+        // 9. Persist the trade with idempotency metadata
+        // -----------------------------------------------------
+
         Trade trade = new Trade(
                 portfolio,
                 symbol,
-                request.side(),
+                side,
                 quantity,
                 price,
                 requestKey,
-                hash
+                fingerprint
         );
 
         Trade saved = tradeRepository.saveAndFlush(trade);
+
+        // -----------------------------------------------------
+        // 10. Business event logging
+        //
+        // The CorrelationIdFilter automatically supplies
+        // correlationId through SLF4J MDC.
+        // -----------------------------------------------------
+
+        log.info(
+                "Trade persisted: portfolioId={}, tradeId={}, symbol={}, side={}",
+                portfolioId,
+                saved.getId(),
+                symbol,
+                side
+        );
+
+        // -----------------------------------------------------
+        // 11. Return the execution result
+        // -----------------------------------------------------
 
         return new TradeExecutionResult(
                 TradeResponse.from(saved),
@@ -199,40 +332,69 @@ public class TradeService {
         );
     }
 
+    // =========================================================
+    // Helper: Normalise stock symbols
+    // =========================================================
 
+    private String normalizeSymbol(String symbol) {
 
-    private String canonicalDecimal(BigDecimal value) {
-        return value.stripTrailingZeros().toPlainString();
+        if (symbol == null) {
+            throw new TradeRejectedException(
+                    "Stock symbol is required"
+            );
+        }
+
+        String normalised = symbol.trim()
+                .toUpperCase(Locale.ROOT);
+
+        if (!normalised.matches("[A-Z][A-Z0-9.]{0,19}")) {
+
+            throw new TradeRejectedException(
+                    "Invalid stock symbol"
+            );
+        }
+
+        return normalised;
     }
 
-    private String fingerprint(
+    // =========================================================
+    // Helper: Calculate a SHA-256 request fingerprint
+    // =========================================================
+
+    private String calculateFingerprint(
             String symbol,
             TradeSide side,
             BigDecimal quantity,
             BigDecimal price
     ) {
-        String canonical = String.join(
+
+        String canonicalRequest = String.join(
                 "|",
                 symbol,
                 side.name(),
-                canonicalDecimal(quantity),
-                canonicalDecimal(price)
+                quantity.stripTrailingZeros().toPlainString(),
+                price.stripTrailingZeros().toPlainString()
         );
 
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
 
-            byte[] bytes = digest.digest(
-                    canonical.getBytes(StandardCharsets.UTF_8)
+            MessageDigest digest =
+                    MessageDigest.getInstance("SHA-256");
+
+            byte[] hash = digest.digest(
+                    canonicalRequest.getBytes(
+                            StandardCharsets.UTF_8
+                    )
             );
 
-            return HexFormat.of().formatHex(bytes);
+            return HexFormat.of().formatHex(hash);
 
         } catch (NoSuchAlgorithmException ex) {
+
             throw new IllegalStateException(
-                    "SHA-256 is unavailable", ex
+                    "SHA-256 is unavailable",
+                    ex
             );
         }
     }
-
 }
