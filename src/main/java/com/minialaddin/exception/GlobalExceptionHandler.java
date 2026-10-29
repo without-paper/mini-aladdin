@@ -74,4 +74,13 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", ex.getMessage()));
     }
 
+    @ExceptionHandler(MissingMarketPriceException.class)
+    public ResponseEntity<Map<String, String>> handleMissingMarketPrice(
+            MissingMarketPriceException ex
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
 }
