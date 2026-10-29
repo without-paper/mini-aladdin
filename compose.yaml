@@ -1,26 +1,82 @@
 
 services:
-  postgres:
+
+  # ========================================================
+  # PostgreSQL Database
+  # ========================================================
+
+  db:
     image: postgres:17
-    container_name: mini-aladdin-postgres
     restart: unless-stopped
 
     environment:
-      POSTGRES_DB: mini_aladdin
-      POSTGRES_USER: mini_user
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
 
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mini_user -d mini_aladdin"]
+      test:
+        - CMD-SHELL
+        - 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
       interval: 5s
-      timeout: 5s
+      timeout: 3s
       retries: 10
+      start_period: 15s
+
+    networks:
+      - aladdin-network
+
+  # ========================================================
+  # Spring Boot Application
+  # ========================================================
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: mini-aladdin:0.6.2
+
+    restart: unless-stopped
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:?POSTGRES_DB is required}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:?POSTGRES_USER is required}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+
+      SERVER_PORT: 8080
+
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    networks:
+      - aladdin-network
+
+# ==========================================================
+# Persistent Storage
+# ==========================================================
 
 volumes:
   postgres_data:
+    external: true
+    name: ${POSTGRES_DATA_VOLUME:?Set existing PostgreSQL volume name}
+
+# ==========================================================
+# Internal Network
+# ==========================================================
+
+networks:
+  aladdin-network:
+    driver: bridge
