@@ -56,7 +56,7 @@ The controller layer is intentionally thin; business rules reside in services. F
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/YOUR_USERNAME/mini-aladdin.git
+   git clone https://github.com/without-paper/mini-aladdin.git
    cd mini-aladdin
    ```
 
@@ -122,8 +122,6 @@ For precise request constraints, response fields, error semantics and examples, 
 - Custom counters: `mini_aladdin.trades.executed`, `mini_aladdin.trades.rejected`, `mini_aladdin.trades.replayed`.
 - Request tracing: `X-Correlation-ID` response header; handled Problem Details responses also include `correlationId` in their JSON body.
 
-**Known issue pending v1.0.0:** In the supplied `TradeService.java`, `recordReplayed()` is called on the *new trade* path rather than on the actual idempotent replay path. The replay counter is therefore currently inaccurate; fix and test this before release. See [Engineering Review](docs/ENGINEERING_REVIEW.md).
-
 Do not expose Actuator metrics to untrusted networks without protection.
 
 ## CI and limitations
@@ -136,7 +134,3 @@ Do not expose Actuator metrics to untrusted networks without protection.
 - [API reference](docs/API.md)
 - [Development, testing & deployment](docs/DEVELOPMENT.md)
 - [Engineering review and release checklist](docs/ENGINEERING_REVIEW.md)
-
-## Licence
-
-No licence is asserted here. Add a `LICENSE` file only after choosing the intended terms; public visibility alone is not a software licence.
