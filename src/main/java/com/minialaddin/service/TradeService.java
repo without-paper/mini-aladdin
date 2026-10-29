@@ -9,12 +9,18 @@ import com.minialaddin.exception.IdempotencyConflictException;
 import com.minialaddin.exception.PortfolioNotFoundException;
 import com.minialaddin.exception.TradeRejectedException;
 
+import com.minialaddin.metrics.TransactionalTradeMetrics;
 import com.minialaddin.model.Portfolio;
 import com.minialaddin.model.Trade;
 import com.minialaddin.model.TradeSide;
 
 import com.minialaddin.repository.PortfolioRepository;
 import com.minialaddin.repository.TradeRepository;
+
+import com.minialaddin.metrics.TradeMetrics;
+
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,12 +47,19 @@ public class TradeService {
     private final PortfolioRepository portfolioRepository;
     private final TradeRepository tradeRepository;
 
+    private final TradeMetrics tradeMetrics;
+    private final TransactionalTradeMetrics transactionalTradeMetrics;
+
     public TradeService(
             PortfolioRepository portfolioRepository,
-            TradeRepository tradeRepository
+            TradeRepository tradeRepository,
+            TradeMetrics tradeMetrics,
+            TransactionalTradeMetrics transactionalTradeMetrics
     ) {
         this.portfolioRepository = portfolioRepository;
         this.tradeRepository = tradeRepository;
+        this.tradeMetrics = tradeMetrics;
+        this.transactionalTradeMetrics = transactionalTradeMetrics;
     }
 
     // =========================================================
@@ -264,6 +277,8 @@ public class TradeService {
                         symbol
                 );
 
+                tradeMetrics.recordRejected();
+
                 throw new TradeRejectedException(
                         "Insufficient cash"
                 );
@@ -278,6 +293,8 @@ public class TradeService {
                         portfolioId,
                         symbol
                 );
+
+                tradeMetrics.recordRejected();
 
                 throw new TradeRejectedException(
                         "Insufficient position"
@@ -307,6 +324,8 @@ public class TradeService {
 
         Trade saved = tradeRepository.saveAndFlush(trade);
 
+        transactionalTradeMetrics.recordExecutionAfterCommit();
+
         // -----------------------------------------------------
         // 10. Business event logging
         //
@@ -325,6 +344,7 @@ public class TradeService {
         // -----------------------------------------------------
         // 11. Return the execution result
         // -----------------------------------------------------
+        tradeMetrics.recordReplayed();
 
         return new TradeExecutionResult(
                 TradeResponse.from(saved),

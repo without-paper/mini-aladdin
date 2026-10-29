@@ -3,6 +3,8 @@ package com.minialaddin.service;
 
 import com.minialaddin.dto.TradeResponse;
 import com.minialaddin.exception.PortfolioNotFoundException;
+import com.minialaddin.metrics.TradeMetrics;
+import com.minialaddin.metrics.TransactionalTradeMetrics;
 import com.minialaddin.repository.PortfolioRepository;
 import com.minialaddin.repository.TradeRepository;
 import com.minialaddin.dto.CreateTradeRequest;
@@ -12,6 +14,10 @@ import com.minialaddin.model.Trade;
 import com.minialaddin.model.TradeSide;
 import com.minialaddin.dto.TradeExecutionResult;
 import com.minialaddin.config.TestDatabaseConfiguration;
+import com.minialaddin.metrics.TradeMetrics;
+import com.minialaddin.metrics.TransactionalTradeMetrics;
+
+import org.junit.jupiter.api.BeforeEach;
 
 import org.springframework.context.annotation.Import;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,25 +34,42 @@ import static org.mockito.ArgumentMatchers.any;
 
 class TradeServiceTest {
 
-    private TradeRepository tradeRepository;
     private PortfolioRepository portfolioRepository;
+    private TradeRepository tradeRepository;
+
+    private TradeMetrics tradeMetrics;
+    private TransactionalTradeMetrics transactionalTradeMetrics;
+
     private TradeService service;
+
 
     @BeforeEach
     void setUp() {
-        tradeRepository = mock(TradeRepository.class);
-        portfolioRepository = mock(PortfolioRepository.class);
 
+        // 1. Initialise repository mocks
+        portfolioRepository = mock(PortfolioRepository.class);
+        tradeRepository = mock(TradeRepository.class);
+
+        // 2. Initialise metrics mocks
+        tradeMetrics = mock(TradeMetrics.class);
+        transactionalTradeMetrics =
+                mock(TransactionalTradeMetrics.class);
+
+        // 3. Construct the service with all dependencies
         service = new TradeService(
                 portfolioRepository,
-                tradeRepository
+                tradeRepository,
+                tradeMetrics,
+                transactionalTradeMetrics
         );
 
+        // 4. Default idempotency lookup: no existing trade
         when(tradeRepository.findByPortfolioIdAndRequestKey(
-                eq(1L),
+                anyLong(),
                 anyString()
         )).thenReturn(Optional.empty());
     }
+
 
     @Test
     void shouldReturnEmptyTradeList() {
