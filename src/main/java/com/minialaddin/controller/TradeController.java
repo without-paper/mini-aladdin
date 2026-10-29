@@ -2,6 +2,7 @@
 package com.minialaddin.controller;
 
 import com.minialaddin.dto.CreateTradeRequest;
+import com.minialaddin.dto.TradeExecutionResult;
 import com.minialaddin.dto.TradeResponse;
 import com.minialaddin.service.TradeService;
 
@@ -33,15 +34,21 @@ public class TradeController {
     @PostMapping
     public ResponseEntity<TradeResponse> createTrade(
             @PathVariable Long portfolioId,
+            @RequestHeader("Idempotency-Key") String requestKey,
             @Valid @RequestBody CreateTradeRequest request
     ) {
-        TradeResponse result = service.executeTrade(
+        TradeExecutionResult result = service.executeTrade(
                 portfolioId,
-                request
+                request,
+                requestKey
         );
 
+        HttpStatus status = result.replayed()
+                ? HttpStatus.OK
+                : HttpStatus.CREATED;
+
         return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(result);
+                .status(status)
+                .body(result.trade());
     }
 }

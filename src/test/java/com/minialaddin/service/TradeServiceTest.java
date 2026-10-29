@@ -10,7 +10,10 @@ import com.minialaddin.exception.TradeRejectedException;
 import com.minialaddin.model.Portfolio;
 import com.minialaddin.model.Trade;
 import com.minialaddin.model.TradeSide;
+import com.minialaddin.dto.TradeExecutionResult;
+import com.minialaddin.config.TestDatabaseConfiguration;
 
+import org.springframework.context.annotation.Import;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -38,6 +41,11 @@ class TradeServiceTest {
                 tradeRepository,
                 portfolioRepository
         );
+
+        when(tradeRepository.findByPortfolioIdAndRequestKey(
+                eq(1L),
+                anyString()
+        )).thenReturn(Optional.empty());
     }
 
     @Test
@@ -85,7 +93,7 @@ class TradeServiceTest {
                 .findByPortfolioIdOrderByExecutedAtAscIdAsc(1L))
                 .thenReturn(List.of());
 
-        when(tradeRepository.save(any(Trade.class)))
+        when(tradeRepository.saveAndFlush(any(Trade.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
 
         CreateTradeRequest request = new CreateTradeRequest(
@@ -95,12 +103,16 @@ class TradeServiceTest {
                 new BigDecimal("200.00")
         );
 
-        TradeResponse result = service.executeTrade(1L, request);
+        TradeExecutionResult result = service.executeTrade(
+                1L,
+                request,
+                "test-trade-0001"
+        );
 
-        assertEquals("AAPL", result.symbol());
-        assertEquals(TradeSide.BUY, result.side());
+        assertEquals("AAPL", result.trade().symbol());
+        assertFalse(result.replayed());
 
-        verify(tradeRepository).save(any(Trade.class));
+        verify(tradeRepository).saveAndFlush(any(Trade.class));
     }
 
     @Test
@@ -126,7 +138,7 @@ class TradeServiceTest {
 
         assertThrows(
                 TradeRejectedException.class,
-                () -> service.executeTrade(1L, request)
+                () -> service.executeTrade(1L, request, "test-trade-0001")
         );
 
         verify(tradeRepository, never()).save(any(Trade.class));
@@ -163,7 +175,7 @@ class TradeServiceTest {
 
         assertThrows(
                 TradeRejectedException.class,
-                () -> service.executeTrade(1L, request)
+                () -> service.executeTrade(1L, request, "test-trade-0001")
         );
 
         verify(tradeRepository, never()).save(any(Trade.class));

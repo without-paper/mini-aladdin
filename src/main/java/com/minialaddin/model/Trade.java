@@ -34,6 +34,13 @@ public class Trade {
     @Column(name = "executed_at", nullable = false)
     private Instant executedAt;
 
+    @Column(name = "request_key", length = 128)
+    private String requestKey;
+
+    @Column(name = "request_fingerprint", length = 256)
+    private String requestFingerprint;
+
+
     protected Trade() {
     }
 
@@ -51,6 +58,22 @@ public class Trade {
         this.price = price;
         this.executedAt = Instant.now();
     }
+
+    public Trade(
+            Portfolio portfolio,
+            String symbol,
+            TradeSide side,
+            BigDecimal quantity,
+            BigDecimal price,
+            String requestKey,
+            String requestFingerprint
+    ) {
+        this(portfolio, symbol, side, quantity, price);
+
+        this.requestKey = requestKey;
+        this.requestFingerprint = requestFingerprint;
+    }
+
 
     public Long getId() {
         return id;
@@ -79,4 +102,13 @@ public class Trade {
     public Instant getExecutedAt() {
         return executedAt;
     }
+
+    public String getRequestKey() {
+        return requestKey;
+    }
+
+    public String getRequestFingerprint() {
+        return requestFingerprint;
+    }
+
 }

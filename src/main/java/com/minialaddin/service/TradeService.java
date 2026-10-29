@@ -10,6 +10,8 @@ import com.minialaddin.model.Trade;
 import com.minialaddin.model.TradeSide;
 import com.minialaddin.repository.PortfolioRepository;
 import com.minialaddin.repository.TradeRepository;
+import com.minialaddin.dto.TradeExecutionResult;
+import com.minialaddin.exception.IdempotencyConflictException;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+import java.util.Optional;
 
 @Service
 public class TradeService {
@@ -45,42 +52,46 @@ public class TradeService {
                 .toList();
     }
 
-    @Transactional
-    public TradeResponse executeTrade(
-            Long portfolioId,
-            CreateTradeRequest request
-    ) {
-        // 1. Lock the Portfolio BEFORE reading trades.
-        Portfolio portfolio = portfolioRepository
-                .findByIdForUpdate(portfolioId)
-                .orElseThrow(() ->
-                        new PortfolioNotFoundException(portfolioId)
-                );
 
-        // 2. Validate and normalise input.
+    @Transactional
+    public TradeExecutionResult executeTrade(
+            Long portfolioId,
+            CreateTradeRequest request,
+            String requestKey
+    ) {
+        // 1. Validate the idempotency key.
+        if (requestKey == null ||
+                !requestKey.matches("[A-Za-z0-9_-]{8,128}")) {
+            throw new TradeRejectedException(
+                    "Invalid Idempotency-Key"
+            );
+        }
+
+        // 2. Validate basic request fields.
         if (request == null ||
                 request.symbol() == null ||
-                request.symbol().isBlank() ||
                 request.side() == null ||
                 request.quantity() == null ||
                 request.price() == null) {
-            throw new TradeRejectedException("Invalid trade request");
+            throw new TradeRejectedException(
+                    "Invalid trade request"
+            );
         }
 
         String symbol = request.symbol()
                 .trim()
                 .toUpperCase(Locale.ROOT);
 
+        BigDecimal quantity = request.quantity();
+        BigDecimal price = request.price();
+
         if (!symbol.matches("[A-Z][A-Z0-9.]{0,19}")) {
             throw new TradeRejectedException("Invalid symbol");
         }
 
-        BigDecimal quantity = request.quantity();
-        BigDecimal price = request.price();
-
         if (quantity.signum() <= 0 ||
-                quantity.scale() > 0 && quantity.stripTrailingZeros().scale() > 0 ||
-                quantity.precision() > 19) {
+                quantity.stripTrailingZeros().scale() > 0 ||
+                quantity.precision() - quantity.scale() > 19) {
             throw new TradeRejectedException("Invalid quantity");
         }
 
@@ -90,44 +101,74 @@ public class TradeService {
             throw new TradeRejectedException("Invalid price");
         }
 
-        // 3. Read committed trade history while holding the lock.
+        // 3. Lock BEFORE checking previous requests or cash.
+        Portfolio portfolio = portfolioRepository
+                .findByIdForUpdate(portfolioId)
+                .orElseThrow(() ->
+                        new PortfolioNotFoundException(portfolioId)
+                );
+
+        // 4. Check idempotency inside the transaction.
+        String hash = fingerprint(
+                symbol, request.side(), quantity, price
+        );
+
+        Optional<Trade> previous =
+                tradeRepository.findByPortfolioIdAndRequestKey(
+                        portfolioId, requestKey
+                );
+
+        if (previous.isPresent()) {
+            Trade existing = previous.get();
+
+            if (!hash.equals(existing.getRequestFingerprint())) {
+                throw new IdempotencyConflictException(
+                        "Idempotency key was used with different parameters"
+                );
+            }
+
+            return new TradeExecutionResult(
+                    TradeResponse.from(existing),
+                    true
+            );
+        }
+
+        // 5. Read trade history while holding the lock.
         List<Trade> history = tradeRepository
                 .findByPortfolioIdOrderByExecutedAtAscIdAsc(portfolioId);
 
         BigDecimal availableCash = portfolio.getInitialCash();
         BigDecimal currentPosition = BigDecimal.ZERO;
 
-        for (Trade previous : history) {
-            BigDecimal amount = previous.getQuantity()
-                    .multiply(previous.getPrice());
+        for (Trade previousTrade : history) {
+            BigDecimal amount = previousTrade.getQuantity()
+                    .multiply(previousTrade.getPrice());
 
-            if (previous.getSide() == TradeSide.BUY) {
+            if (previousTrade.getSide() == TradeSide.BUY) {
                 availableCash = availableCash.subtract(amount);
             } else {
                 availableCash = availableCash.add(amount);
             }
 
-            if (previous.getSymbol().equals(symbol)) {
-                if (previous.getSide() == TradeSide.BUY) {
+            if (previousTrade.getSymbol().equalsIgnoreCase(symbol)) {
+                if (previousTrade.getSide() == TradeSide.BUY) {
                     currentPosition = currentPosition.add(
-                            previous.getQuantity()
+                            previousTrade.getQuantity()
                     );
                 } else {
                     currentPosition = currentPosition.subtract(
-                            previous.getQuantity()
+                            previousTrade.getQuantity()
                     );
                 }
             }
         }
 
-        // 4. Apply business rules.
-        BigDecimal tradeAmount = quantity.multiply(price);
+        // 6. Apply business constraints.
+        BigDecimal amount = quantity.multiply(price);
 
         if (request.side() == TradeSide.BUY) {
-            if (availableCash.compareTo(tradeAmount) < 0) {
-                throw new TradeRejectedException(
-                        "Insufficient cash"
-                );
+            if (availableCash.compareTo(amount) < 0) {
+                throw new TradeRejectedException("Insufficient cash");
             }
         } else if (request.side() == TradeSide.SELL) {
             if (currentPosition.compareTo(quantity) < 0) {
@@ -139,18 +180,59 @@ public class TradeService {
             throw new TradeRejectedException("Unsupported trade side");
         }
 
-        // 5. Save the accepted trade.
+        // 7. Persist accepted trade and its idempotency key together.
         Trade trade = new Trade(
                 portfolio,
                 symbol,
                 request.side(),
                 quantity,
-                price
+                price,
+                requestKey,
+                hash
         );
 
-        Trade savedTrade = tradeRepository.save(trade);
+        Trade saved = tradeRepository.saveAndFlush(trade);
 
-        // 6. Convert to DTO inside the transaction.
-        return TradeResponse.from(savedTrade);
+        return new TradeExecutionResult(
+                TradeResponse.from(saved),
+                false
+        );
     }
+
+
+
+    private String canonicalDecimal(BigDecimal value) {
+        return value.stripTrailingZeros().toPlainString();
+    }
+
+    private String fingerprint(
+            String symbol,
+            TradeSide side,
+            BigDecimal quantity,
+            BigDecimal price
+    ) {
+        String canonical = String.join(
+                "|",
+                symbol,
+                side.name(),
+                canonicalDecimal(quantity),
+                canonicalDecimal(price)
+        );
+
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+
+            byte[] bytes = digest.digest(
+                    canonical.getBytes(StandardCharsets.UTF_8)
+            );
+
+            return HexFormat.of().formatHex(bytes);
+
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException(
+                    "SHA-256 is unavailable", ex
+            );
+        }
+    }
+
 }
