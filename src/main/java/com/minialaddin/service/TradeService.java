@@ -9,18 +9,15 @@ import com.minialaddin.exception.IdempotencyConflictException;
 import com.minialaddin.exception.PortfolioNotFoundException;
 import com.minialaddin.exception.TradeRejectedException;
 
+import com.minialaddin.metrics.TradeMetrics;
 import com.minialaddin.metrics.TransactionalTradeMetrics;
+
 import com.minialaddin.model.Portfolio;
 import com.minialaddin.model.Trade;
 import com.minialaddin.model.TradeSide;
 
 import com.minialaddin.repository.PortfolioRepository;
 import com.minialaddin.repository.TradeRepository;
-
-import com.minialaddin.metrics.TradeMetrics;
-
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -203,6 +200,10 @@ public class TradeService {
                     existing.getId()
             );
 
+            // FIX: Count an actual idempotent replay.
+            // No new trade is persisted in this branch.
+            tradeMetrics.recordReplayed();
+
             return new TradeExecutionResult(
                     TradeResponse.from(existing),
                     true
@@ -324,6 +325,8 @@ public class TradeService {
 
         Trade saved = tradeRepository.saveAndFlush(trade);
 
+        // Record a successful execution only after the
+        // surrounding database transaction commits.
         transactionalTradeMetrics.recordExecutionAfterCommit();
 
         // -----------------------------------------------------
@@ -344,7 +347,8 @@ public class TradeService {
         // -----------------------------------------------------
         // 11. Return the execution result
         // -----------------------------------------------------
-        tradeMetrics.recordReplayed();
+
+        // FIX: Do not count a newly executed trade as a replay.
 
         return new TradeExecutionResult(
                 TradeResponse.from(saved),
