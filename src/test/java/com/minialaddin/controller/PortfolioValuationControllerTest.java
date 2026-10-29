@@ -103,4 +103,60 @@ class PortfolioValuationControllerTest {
                 ))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void shouldValueEmptyPortfolioWithoutMarketPrices()
+            throws Exception {
+
+        Portfolio portfolio = portfolioService.createPortfolio(
+                "M4 Empty Portfolio Test",
+                new BigDecimal("5000.00")
+        );
+
+        mockMvc.perform(get(
+                        "/api/portfolios/{id}/valuation",
+                        portfolio.getId()
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.availableCash").value(5000.00))
+                .andExpect(jsonPath("$.marketValue").value(0.00))
+                .andExpect(jsonPath("$.totalValue").value(5000.00))
+                .andExpect(jsonPath("$.totalPnl").value(0.00))
+                .andExpect(jsonPath("$.positions.length()").value(0));
+    }
+
+    @Test
+    void shouldRejectValuationWhenMarketPriceMissing()
+            throws Exception {
+
+        Portfolio portfolio = portfolioService.createPortfolio(
+                "M4 Missing Quote Test",
+                new BigDecimal("10000.00")
+        );
+
+        Long id = portfolio.getId();
+
+        String symbol = "T" + UUID.randomUUID()
+                .toString()
+                .replace("-", "")
+                .substring(0, 10)
+                .toUpperCase();
+
+        trade(
+                id,
+                symbol,
+                TradeSide.BUY,
+                "5",
+                "100.00"
+        );
+
+        mockMvc.perform(get(
+                        "/api/portfolios/{id}/valuation", id
+                ))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value(
+                        "Missing market price for " + symbol
+                ));
+    }
+
 }
