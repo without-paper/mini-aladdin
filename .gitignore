@@ -37,3 +37,9 @@ build/
 !.env.example
 
 backups/
+
+# IntelliJ IDEA
+.idea/
+
+# Local performance results
+performance/results/
