@@ -154,7 +154,7 @@ class PortfolioValuationControllerTest {
                         "/api/portfolios/{id}/valuation", id
                 ))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error").value(
+                .andExpect(jsonPath("$.detail").value(
                         "Missing market price for " + symbol
                 ));
     }

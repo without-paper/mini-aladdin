@@ -67,7 +67,9 @@ class PortfolioControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").exists());
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").exists())
+                .andExpect(jsonPath("$.correlationId").exists());
     }
 
     @Test
@@ -83,13 +85,17 @@ class PortfolioControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").exists());
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").exists())
+                .andExpect(jsonPath("$.correlationId").exists());
     }
 
     @Test
     void shouldReturnNotFoundForUnknownId() throws Exception {
         mockMvc.perform(get("/api/portfolios/999999"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").exists());
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.detail").exists())
+                .andExpect(jsonPath("$.correlationId").exists());
     }
 }
