@@ -18,28 +18,6 @@ The project is an **educational prototype, not production-ready trading infrastr
 | Errors | RFC 9457 `ProblemDetail` with explicit `about:blank`, mapped 400/404/409/500 | Filter/container-level failures may bypass MVC advice |
 | CI and delivery | Testcontainers, Java 21 Maven CI, Docker build, Compose deployments were exercised during development | Current Compose is designed around an existing external volume |
 
-## Release blocker: incorrect replay counter
-
-The supplied `TradeService.java` has an observable **business-metrics bug**:
-
-- The matching-idempotent-replay branch (`existingTrade.isPresent()` with matching fingerprint) returns `TradeExecutionResult(..., true)` **without calling** `tradeMetrics.recordReplayed()`.
-- The newly executed trade path calls `transactionalTradeMetrics.recordExecutionAfterCommit()` and then calls `tradeMetrics.recordReplayed()` **just before** returning `TradeExecutionResult(..., false)`.
-
-As written, new trades are incorrectly counted as replays and actual replays are not counted. This does **not** show that a duplicate trade is inserted; it shows the replay metric is wrong.
-
-**Required fix in `src/main/java/com/minialaddin/service/TradeService.java`:**
-
-```java
-// In the existing-trade, matching-fingerprint branch:
-tradeMetrics.recordReplayed();
-return new TradeExecutionResult(
-        TradeResponse.from(existing),
-        true
-);
-```
-
-Remove the later call to `tradeMetrics.recordReplayed()` from the **new-trade** success branch. Keep `transactionalTradeMetrics.recordExecutionAfterCommit()` on the new-trade path. Add/extend tests covering both events, rerun `clean verify`, and ensure both GitHub Actions jobs pass before tagging `v1.0.0`.
-
 ## Additional observations
 
 1. **MDC / async scope:** The correlation filter in earlier stages handles synchronous HTTP processing. Asynchronous execution may require explicit context propagation.
@@ -64,7 +42,6 @@ Remove the later call to `tradeMetrics.recordReplayed()` from the **new-trade** 
 
 ## Acceptance tests for v1.0.0
 
-- [ ] Fix and test the replay-counter defect identified above.
 - [ ] Confirm actual `pom.xml` project version and decide whether to set `1.0.0` before tagging.
 - [ ] Run the full Java 21 test suite (`clean verify`), including Testcontainers.
 - [ ] Confirm GitHub Actions **Maven Tests** and **Docker Image Build** jobs pass on the release commit.
