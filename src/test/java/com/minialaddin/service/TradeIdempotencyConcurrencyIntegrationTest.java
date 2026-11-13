@@ -21,6 +21,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import io.micrometer.core.instrument.MeterRegistry;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
@@ -36,6 +38,15 @@ class TradeIdempotencyConcurrencyIntegrationTest {
     @Autowired
     private TradeRepository tradeRepository;
 
+    @Autowired
+    private MeterRegistry meterRegistry;
+
+    private double counterValue(String metricName) {
+        return meterRegistry.get(metricName)
+                .counter()
+                .count();
+        }
+
     @Test
     void shouldExecuteSameIdempotencyKeyOnlyOnce() throws Exception {
 
@@ -46,6 +57,14 @@ class TradeIdempotencyConcurrencyIntegrationTest {
         );
 
         Long portfolioId = portfolio.getId();
+
+        double executedBefore = counterValue(
+                "mini_aladdin.trades.executed"
+        );
+        
+        double replayedBefore = counterValue(
+                "mini_aladdin.trades.replayed"
+        );
 
         // 2. Create a trade request
         CreateTradeRequest request = new CreateTradeRequest(
@@ -154,6 +173,19 @@ class TradeIdempotencyConcurrencyIntegrationTest {
             assertEquals(
                     requestKey,
                     savedTrade.getRequestKey()
+            );
+
+            // 10. Verify instrumentation
+            assertEquals(
+                executedBefore + 1,
+                counterValue("mini_aladdin.trades.executed"),
+                "Only one new trade should be recorded as executed"
+            );
+
+            assertEquals(
+                replayedBefore + 1,
+                counterValue("mini_aladdin.trades.replayed"),
+                "Exactly one request should be recorded as replayed"
             );
 
         } finally {
