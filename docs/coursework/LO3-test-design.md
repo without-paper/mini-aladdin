@@ -223,6 +223,61 @@ Complete after test execution:
 
 Evidence: `LO3-C-model-based-test-run.txt`.
 
+## 5. Regression and Integration Testing
+
+### 5.1 Test Basis and Risk
+
+Testing focused on R3 (financial valuation correctness). Source-code inspection identified a potential inconsistency when weighted-average cost allocation produces fractional cents and realised, unrealised and total P&L are rounded independently.
+
+Existing valuation tests use transaction histories whose cost allocations do not expose this particular rounding interaction.
+
+### 5.2 Test Specification
+
+A portfolio starts with $100.00 and performs three transactions:
+
+1. BUY 1 AAPL at $0.01.
+2. BUY 1 AAPL at $0.02.
+3. SELL 1 AAPL at $0.02.
+
+The remaining share has a market price of $0.02.
+
+An independent cash-flow oracle gives:
+
+- Available cash: $99.99
+- Market value: $0.02
+- Total portfolio value: $100.01
+- Total P&L: $0.01
+
+The reported realised and unrealised P&L must sum to the reported total P&L.
+
+### 5.3 Testing Techniques
+
+**Unit regression testing:** `PortfolioValuationRoundingRegressionTest` checks the calculator's output against independently derived cash-flow values and the accounting reconciliation invariant.
+
+**Integration testing:** `PortfolioValuationRoundingIntegrationTest` executes the trading history using PostgreSQL, updates a market quote and requests portfolio valuation through MockMvc. The expected response is HTTP 200 with reconciled financial values.
+
+### 5.4 Adequacy and Evaluation
+
+The tests target a previously untested fractional-cent cost-allocation scenario. Their purpose is to detect financial reconciliation errors and determine whether they propagate to the API.
+
+The selected tests provide focused evidence for this rounding scenario. They do not establish correctness for every possible trading history or rounding policy.
+
+### 5.5 Execution Results and Defect Record
+
+To be completed after execution:
+
+- Unit regression test: TBD
+- Integration test: TBD
+- Confirmed root cause: TBD
+- Corrective action: TBD
+- Post-fix regression result: TBD
+- Confirmed production defects: TBD
+
+Evidence:
+- `LO3-D-rounding-before-fix.txt`
+- `LO3-D-integration-before-fix.txt`
+- `LO3-D-rounding-after-fix.txt` (pending)
+
 ### References
 
 - Young and Pezzè, Chapter 5: Finite Models, especially slides 17–20.
