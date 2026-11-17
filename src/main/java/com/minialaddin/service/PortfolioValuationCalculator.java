@@ -81,14 +81,20 @@ public class PortfolioValuationCalculator {
                     );
                 }
 
+
                 BigDecimal removedCost;
 
                 if (state.quantity.compareTo(quantity) == 0) {
                     removedCost = state.costBasis;
                 } else {
-                    removedCost = state.costBasis
-                            .multiply(quantity)
-                            .divide(state.quantity, MC);
+                    // Allocate the sold portion of the weighted-average
+                    // cost basis in cents. The residual cost remains
+                    // assigned to the unsold position.
+                    removedCost = money(
+                            state.costBasis
+                                    .multiply(quantity)
+                                    .divide(state.quantity, MC)
+                    );
                 }
 
                 BigDecimal pnl = amount.subtract(removedCost);

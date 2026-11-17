@@ -93,5 +93,30 @@ class PortfolioValuationRoundingRegressionTest {
                 "Realised and unrealised P&L must "
                         + "sum to the reported total P&L"
         );
+
+        // The cost of the sold share is rounded to $0.02.
+        // The remaining share retains $0.01 cost basis.
+        assertEquals(
+                new BigDecimal("0.00"),
+                result.realisedPnl()
+        );
+
+        assertEquals(
+                new BigDecimal("0.01"),
+                result.unrealisedPnl()
+        );
+
+        assertEquals(1, result.positions().size());
+
+        assertEquals(
+                new BigDecimal("0.01"),
+                result.positions().get(0).costBasis()
+        );
+
+        assertEquals(
+                result.unrealisedPnl(),
+                result.positions().get(0).unrealisedPnl()
+        );
+
     }
 }
