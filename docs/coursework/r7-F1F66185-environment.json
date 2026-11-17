@@ -1,0 +1,21 @@
+﻿{
+    "generatedUtc":  "2026-11-17T02:10:40.0168889Z",
+    "commit":  "a98a5efec9c2b210b5c4db4f0f38b0bf469bfcca",
+    "seedToken":  "F1F66185",
+    "portfolioId":  15,
+    "baseUrl":  "http://localhost:8080",
+    "rounds":  3,
+    "warmupPerRound":  20,
+    "measuredPerRound":  100,
+    "p95ThresholdMs":  200,
+    "measurement":  "Sequential client-observed Invoke-WebRequest elapsed time, including HTTP client and local network overhead",
+    "environmentOS":  "Microsoft Windows NT 10.0.26200.0",
+    "powershellVersion":  "5.1.26100.9818",
+    "cpu":  "AMD Ryzen 9 7945HX with Radeon Graphics        ",
+    "memoryGiB":  15.22,
+    "workload":  "100 committed BUY trades; 10 open symbols; 10 shares/symbol; quotes refreshed before measurement",
+    "expectedCash":  90000,
+    "expectedMarketValue":  10100,
+    "expectedTotalValue":  100100,
+    "expectedTotalPnl":  100
+}

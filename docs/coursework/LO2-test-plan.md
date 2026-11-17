@@ -52,7 +52,7 @@ The R2 instrumentation and concurrency checks were completed. Specification-base
 
 LO3-E established a JaCoCo baseline of **574/615 covered lines (93.3%)** and **123/180 covered branches (68.3%)**. The selected `PortfolioValuationCalculator` mutation experiment killed **19/23 mutants (83% PIT-reported mutation coverage)**, with four surviving conditional-boundary mutants requiring further interpretation. See [LO3 results](LO3-test-results.md) and [LO3 test design](LO3-test-design.md).
 
-The R7 workload-specific performance experiment remains **pending**. The existing benchmark must not be treated as confirmation of the proposed R7 acceptance criterion without matching workload and environment records. These results demonstrate progress against the original plan while retaining the stated limits on concurrency and financial assurance.
+The R7 performance experiment was completed using 100 historical trades, 10 open positions and three runs of 100 sequential measurements. All 300 requests succeeded, and the measured P95 values were 57.762 ms, 52.976 ms and 52.416 ms, satisfying the proposed 200 ms threshold. One 2064.904 ms outlier was observed in Run 3 and remains unexplained. 
 
 ## References
 

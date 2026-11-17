@@ -364,7 +364,51 @@ All four survivors were conditional-boundary mutations. This suggests weaker tes
 - [LO3-E-pitest-run.txt](LO3-E-pitest-run.txt) — PIT run, operator breakdown and mutation summary.
 - PIT HTML/XML reports were generated locally but are **not included** in the current `docs/coursework` directory. The report summary screenshot alone does not identify the four surviving mutations by source line.
 
+## 7. System Performance Testing
 
+### 7.1 Requirement and Environment
+
+System-level performance testing evaluated R7, which requires a P95 valuation response time of at most 200 ms under the defined local workload.
+
+The experiment used the deployed Spring Boot application with PostgreSQL 17 through Docker Compose. A dedicated portfolio was created with 100 committed BUY trades, 10 open positions and fresh market prices.
+
+The benchmark verified the workload and expected financial values before measurement. A single client issued sequential HTTP requests to the valuation endpoint.
+
+### 7.2 Experimental Procedure
+
+Three runs were performed, each consisting of 20 warm-up requests followed by 100 measured requests.
+
+Individual HTTP request latencies and response statuses were recorded. P50, P95 and P99 were calculated using the nearest-rank method. Raw measurements and environment metadata were retained.
+
+### 7.3 Acceptance Criteria
+
+R7 is satisfied when all 300 measured requests return HTTP 200 and the P95 latency in each of the three runs is at most 200 ms.
+
+### 7.4 Execution Results
+
+| Run | Successful requests | Average (ms) | P95 (ms) | P99 (ms) | Maximum (ms) | Result |
+|---|---:|---:|---:|---:|---:|---|
+| 1 | 100/100 | 51.012 | 57.762 | 59.614 | 65.045 | PASS |
+| 2 | 100/100 | 50.966 | 52.976 | 58.917 | 59.034 | PASS |
+| 3 | 100/100 | 69.423 | 52.416 | 56.612 | 2064.904 | PASS |
+
+**Overall result: R7 PASSED.** All 300 measured requests succeeded, and each run satisfied the specified P95 threshold.
+
+### 7.5 Evaluation and Limitations
+
+The P95 latency remained between 52.416 ms and 57.762 ms across the three runs, substantially below the 200 ms threshold.
+
+However, Run 3 contained a maximum latency of 2064.904 ms, which increased its mean latency. The cause of this outlier was not established. This indicates that occasional long-tail delays can occur even when the P95 requirement is satisfied.
+
+The benchmark measured client-observed HTTP latency, including client processing and local communication overhead. It used one synthetic portfolio, a sequential client and a local deployment. The results support R7 under the specified conditions but do not establish performance under concurrent production workloads.
+
+### 7.6 Evidence
+
+- `LO3-F-r7-run.txt` — console execution log.
+- `r7-F1F66185-raw.csv` — individual request latencies and statuses.
+- `r7-F1F66185-summary.csv` — per-run statistics.
+- `r7-F1F66185-environment.json` — configuration and environment metadata.
+- `performance/benchmark-valuation-r7.ps1` — reproducible benchmark script.
 
 ## References
 
