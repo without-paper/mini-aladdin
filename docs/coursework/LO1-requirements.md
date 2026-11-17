@@ -51,19 +51,19 @@ R7 is a proposed coursework requirement, rather than an existing production serv
 
 ## 5. Appropriateness and Limitations
 
-Specification-based partitioning provides systematic coverage of important input classes and financial boundaries for R1 and R4. Category-partition and model-based approaches complement this by considering interactions and sequences for R2 and R3. Structural coverage will subsequently identify implementation branches that these tests miss.
+Specification-based partitioning provides systematic coverage of important input classes and financial boundaries for R1 and R4. Category-partition and model-based approaches complement this by considering interactions and sequences for R2 and R3. JaCoCo structural analysis found 57 uncovered branches among 180 identified across the application. These results complement specification-based tests by exposing implementation-level coverage gaps; see [LO3 test results](LO3-test-results.md).
 
 Mocked unit tests provide efficient and repeatable feedback, but cannot establish database transaction or locking behaviour. PostgreSQL integration tests are therefore necessary for R2 and R5. Even these tests cannot exhaust all concurrent execution schedules.
 
-Financial calculations require independently derived expected values to reduce the risk of reproducing implementation mistakes in test oracles. A potential ambiguity concerns the independent rounding of P&L components and their reconciliation; the intended rounding policy must be established before interpreting the corresponding regression test.
+Financial calculations require independently derived expected values to reduce the risk of reproducing implementation mistakes in test oracles. The fractional-cent P&L reconciliation defect (D-02) was reproduced by independent unit and API integration tests. A two-decimal `HALF_UP` cost-allocation rule was specified and implemented; all 97 tests subsequently passed. This supports the tested scenarios, while broader financial histories and alternative accounting conventions remain outside the evidence.
 
 The performance target applies only within the defined operational envelope. Local measurements cannot establish production performance, availability or reliability. Similarly, checking correlation identifiers and metrics supports diagnosability, but does not establish that every operational failure can be diagnosed.
 
-The approach combines partitioning, visibility and complementary forms of evidence, following the course principles in Young and Pezzè Chapters 2–4. The selected testing techniques draw on Chapters 5, 10–12, 14, 21 and 22.
+The approach combines partitioning, visibility and complementary forms of evidence, following the course principles in Young and Pezzè Chapters 2–4. The selected testing techniques draw on Chapters 5, 10–12, 14, 16, 21 and 22.
 
 ## 6. References
 
 - Software Testing Tutorial LO1: Requirements and testing strategies.
 - Young and Pezzè, Chapters 2–4: Framework, Principles and Process.
-- Young and Pezzè, Chapters 5, 10–12, 14, 21 and 22: Testing techniques and system testing.
+- Young and Pezzè, Chapters 5, 10–12, 14, 16, 21 and 22: Testing techniques and system testing.
 - Mini Aladdin: README, API specification, architecture documentation and existing test suite.

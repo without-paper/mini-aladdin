@@ -2,42 +2,86 @@
 
 ## 1. Test Suite Evolution
 
-| Stage | Techniques | Total tests | Failures | Errors |
-|---|---|---:|---:|---:|
-| Baseline | Existing unit and integration tests | 69 | 0 | 0 |
-| LO3-A | Functional partitioning and boundary analysis | 81 | 0 | 0 |
-| LO3-B | Category-partition and exhaustive combinations | 94 | 0 | 0 |
-| LO3-C | Model-based state-machine testing | TBD | TBD | TBD |
+| Stage | Techniques / evidence | Full-suite tests | Failures | Errors | Skipped |
+|---|---|---:|---:|---:|---:|
+| Baseline | Original unit and integration tests | 69 | 0 | 0 | 0 |
+| LO3-A | Equivalence partitioning and boundary analysis | 81 | 0 | 0 | 0 |
+| LO3-B | Category-partition and exhaustive combinations | 94 | 0 | 0 | 0 |
+| LO3-C | Model-based idempotency state-machine testing | 95 | 0 | 0 | 0 |
+| LO3-D, post-fix | Regression and PostgreSQL API integration tests | 97 | 0 | 0 | 0 |
+| LO3-E | JaCoCo-instrumented full regression verification | 97 | 0 | 0 | 0 |
 
-All reported results refer to actual Maven test executions recorded in the corresponding test logs. LO3-C results will be added after execution.
+LO3-D also produced **two intentionally recorded pre-fix failures**: a unit reconciliation test (`expected: <0> but was: <-1>`) and an API integration test (HTTP 500 instead of 200). These are the evidence of defect D-02, not successful runs. Both tests passed after the production fix, and the complete post-fix regression suite passed.
 
-## 2. Test Adequacy
+## 2. Specification- and Model-based Adequacy
 
-| Criterion | Defined scope | Achieved |
-|---|---|---|
-| Equivalence partition coverage | 8 defined partitions in R1/R4 | 8/8 |
-| Boundary coverage | 12 defined boundary cases | 12/12 |
-| Combination coverage | 12 normal-domain R2 combinations | 12/12 |
-| Error-choice execution | Invalid idempotency key | 1/1 |
-| FSM state coverage | 2 defined states | TBD |
-| FSM transition coverage | 4 defined transitions | TBD |
+| Criterion | Defined scope | Exercised | Coverage |
+|---|---|---:|---:|
+| Equivalence partition coverage | Eight defined R1/R4 partitions | 8/8 | 100% |
+| Boundary coverage | Twelve specified R1/R4 cases | 12/12 | 100% |
+| Normal-domain combination coverage | Twelve feasible R2 test frames | 12/12 | 100% |
+| Error-choice execution | Invalid idempotency key | 1/1 | 100% |
+| Finite-state-machine state coverage | U and B states | 2/2 | 100% |
+| Finite-state-machine transition coverage | T1–T4 | 4/4 | 100% |
 
-All coverage figures refer to explicitly defined test models rather than the entire application's input or state space.
+These completeness figures apply **only to the chosen abstractions**, not the whole input, state or concurrent-schedule space.
 
-## 3. Findings and Defect Yield
+## 3. Structural Coverage (LO3-E)
 
-**D-01 — Weak persistence assertion:** Existing rejection tests checked `save()` rather than the actual `saveAndFlush()` operation. The assertions were strengthened. Classification: test-suite weakness.
+JaCoCo 0.8.16 instrumented the full **97-test** suite:
 
-**D-02 — Potential financial rounding inconsistency:** Independent rounding of realised, unrealised and total P&L may violate accounting reconciliation. Classification: suspected production defect, awaiting a targeted regression test.
+- **Line coverage:** 574/615 = **93.3%** (41 missed lines).
+- **Branch coverage:** 123/180 = **68.3%** (57 missed branches).
+- **Instruction coverage:** 2,012/2,187; the JaCoCo HTML interface displays **91%** (175 missed instructions).
 
-No production defect has yet been confirmed by the new LO3-A or LO3-B tests.
+| Selected production class | Covered lines | Covered branches |
+|---|---:|---:|
+| `TradeService` | 95/110 (86.4%) | 34/52 (65.4%) |
+| `PortfolioValuationCalculator` | 77/80 (96.3%) | 25/34 (73.5%) |
+| `MarketPriceFreshnessPolicy` | 22/22 (100%) | 8/8 (100%) |
 
-Test yield and confirmed defect counts will be updated when additional faults are discovered and validated.
+The unexecuted conditions, particularly in `TradeService`, limit the assurance provided by the high overall line coverage. JaCoCo counts bytecode-level branches primarily from `if` and `switch`, so branch coverage is not the same as all possible control-flow paths or exception outcomes.
 
-## 4. Evidence
+**Evidence:** [LO3-E-jacoco-test-run.txt](LO3-E-jacoco-test-run.txt), [LO3-E-jacoco.csv](LO3-E-jacoco.csv).
 
-- `baseline-test-run.txt`
-- `LO3-A-functional-test-run.txt`
-- `LO3-B-combinatorial-test-run.txt`
-- `LO3-C-model-based-test-run.txt` (pending)
-- `LO3-test-design.md`
+## 4. Fault-based / Mutation Testing (LO3-E)
+
+PIT 1.30.2 was restricted to **one production class**, `PortfolioValuationCalculator`, using three calculator-focused test classes.
+
+| Mutator | Generated | Killed | Survived |
+|---|---:|---:|---:|
+| Conditional boundaries | 5 | 1 | 4 |
+| Negate conditionals | 15 | 15 | 0 |
+| Null return values | 3 | 3 | 0 |
+| **Total** | **23** | **19** | **4** |
+
+- **Mutation coverage:** 19/23 = **82.6%** (PIT reports 83%).
+- **Test strength:** 19/23 = **82.6%** (PIT reports 83%).
+- **No-coverage mutants:** 0; **time-outs:** 0.
+- **PIT line coverage within selected class:** 77/80 = **96.3%** (PIT reports 96%).
+
+All four surviving mutants came from boundary-operator mutations. Their exact locations and equivalence status have not yet been assessed; they are potential test-design gaps, **not confirmed production defects**. The PIT mutation score must not be described as project-wide because the experiment mutated one class.
+
+**Evidence:** [LO3-E-pitest-run.txt](LO3-E-pitest-run.txt). Local PIT HTML/XML reports contain the detailed mutation views but are not committed in the current `docs/coursework` listing.
+
+## 5. Findings and Defect Yield
+
+**D-01 — Test-suite weakness (corrected):** Existing rejected-trade tests asserted that `save()` was never invoked, while production code uses `saveAndFlush()`. The assertions were corrected. This is a test-quality finding, not a production defect.
+
+**D-02 — Confirmed production defect (fixed and regression-tested):** When a partial sale allocated a fractional-cent weighted-average cost, independently rounded realised and unrealised P&L did not reconcile with total P&L. The unit regression test failed, and the API returned HTTP 500. The cost allocation was changed to round the removed cost basis to cents with `HALF_UP`, preserving the residual cost basis. Both tests passed after the fix, as did the complete 97-test regression suite.
+
+**Defect count:** one distinct production defect confirmed and fixed during LO3, supported by two failing pre-fix tests. The four surviving PIT mutants are separate test-quality investigation candidates and are not counted as production defects. A production defect count is reported here rather than an unqualified defect-yield percentage, because a consistent detection-opportunity denominator has not been defined.
+
+## 6. Evidence Index
+
+- [Baseline test run](baseline-test-run.txt)
+- [LO3-A functional tests](LO3-A-functional-test-run.txt)
+- [LO3-B combinatorial tests](LO3-B-combinatorial-test-run.txt)
+- [LO3-C model-based tests](LO3-C-model-based-test-run.txt)
+- [LO3-D pre-fix unit failure](LO3-D-rounding-before-fix.txt)
+- [LO3-D pre-fix integration failure](LO3-D-integration-before-fix.txt)
+- [LO3-D post-fix 97-test regression](LO3-D-rounding-after-fix.txt)
+- [LO3-E JaCoCo test run](LO3-E-jacoco-test-run.txt)
+- [LO3-E raw coverage CSV](LO3-E-jacoco.csv)
+- [LO3-E PIT log](LO3-E-pitest-run.txt)
+- [Detailed LO3 test design](LO3-test-design.md)

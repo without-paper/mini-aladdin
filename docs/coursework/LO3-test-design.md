@@ -57,7 +57,7 @@ FT-07–FT-12 are implemented in `MarketPriceFreshnessPolicyTest`, using `valida
 
 Existing tests for missing timestamps, empty portfolios and ordinary financial calculations are retained.
 
-The unit-level trade oracle checks acceptance or rejection, returned trade details and the expected `saveAndFlush()` interaction. It does not independently verify committed database state. Subsequent integration tests will verify the observable financial effects using PostgreSQL.
+The unit-level trade oracle checks acceptance or rejection, returned trade details and the expected `saveAndFlush()` interaction. It does not independently verify committed database state. Complementary PostgreSQL integration tests in LO3-B–D verify observable persisted trade and financial state.
 
 ### 2.5 Adequacy Criteria
 
@@ -302,11 +302,11 @@ PIT 1.30.2, with the JUnit platform plugin, is configured to analyse `PortfolioV
 
 The initial mutation analysis is deliberately restricted to this component to keep the experiment manageable and support detailed examination of surviving mutants.
 
-Mutations will be classified according to their reported status. Surviving mutants will be inspected to determine whether they indicate a missing test, an insufficient oracle or behaviourally equivalent code.
+PIT classified the generated mutations by outcome. Four conditional-boundary mutants survived; their exact source locations and possible equivalence have not yet been examined, so they are recorded as unresolved test-sensitivity findings.
 
 ### 6.4 Adequacy Criteria
 
-The analysis will report:
+The analysis reports:
 
 - Line coverage of selected production classes.
 - Branch coverage of selected production classes.
@@ -314,36 +314,60 @@ The analysis will report:
 - PIT-reported mutation coverage.
 - Specific uncovered branches or surviving mutants requiring further testing.
 
-Initial measurements will establish a baseline before additional test cases are designed. Any subsequent test improvements will be evaluated by comparing the results under the same configuration.
+These initial measurements establish a baseline. Any future test improvements should be evaluated using the same JaCoCo and PIT configuration to support a meaningful comparison.
 
 ### 6.5 Execution Results
 
-To be completed after execution:
+The full Maven verification completed successfully with **97 tests, zero failures, zero errors and zero skipped tests**. JaCoCo and PIT both generated valid reports.
 
-- JaCoCo full-suite result: TBD
-- TradeService line / branch coverage: TBD
-- PortfolioValuationCalculator line / branch coverage: TBD
-- MarketPriceFreshnessPolicy line / branch coverage: TBD
-- PIT mutants generated: TBD
-- Mutants killed: TBD
-- Mutants survived: TBD
-- Mutation coverage: TBD
-- Additional tests or findings: TBD
+**JaCoCo — whole application (97-test suite):**
 
-Evidence:
+- **Covered lines:** 574/615 = **93.3%** (41 missed).
+- **Covered branches:** 123/180 = **68.3%** (57 missed).
+- **Covered instructions:** 2,012/2,187 (175 missed; the HTML summary displays **91%** instruction coverage).
 
-- `LO3-E-jacoco-test-run.txt`
-- `LO3-E-jacoco.csv`
-- `LO3-E-pitest-run.txt`
-- PIT HTML/XML reports.
+**Selected service classes:**
 
-### References
+| Class | Covered lines | Line coverage | Covered branches | Branch coverage |
+|---|---:|---:|---:|---:|
+| `TradeService` | 95/110 | 86.4% | 34/52 | 65.4% |
+| `PortfolioValuationCalculator` | 77/80 | 96.3% | 25/34 | 73.5% |
+| `MarketPriceFreshnessPolicy` | 22/22 | 100% | 8/8 | 100% |
 
-- Young and Pezzè, Chapter 5: Finite Models, especially slides 17–20.
-- Young and Pezzè, Chapter 14: Model-based Testing, especially slides 3–9.
-- Mini Aladdin: `TradeService.java`, `TradeController.java` and `docs/API.md`.
+The contrast between line and branch coverage indicates that some conditions remain unexercised despite broad statement execution. In particular, `TradeService` has 18 missed branches, while the valuation calculator has nine. The freshness policy achieved full line and branch coverage under the recorded suite; this does not prove correctness for all inputs or execution contexts.
+
+**PIT — `PortfolioValuationCalculator` only, using three calculator-focused test classes:**
+
+- **Mutants generated:** 23.
+- **Killed:** 19.
+- **Survived:** 4.
+- **No coverage:** 0; **timed out:** 0.
+- **PIT mutation coverage:** 19/23 = **82.6%**, reported as 83%.
+- **Test strength:** 19/23 = **82.6%**, reported as 83%. The values coincide because no mutants were classified as uncovered.
+- **PIT line coverage within the mutated class:** 77/80 = **96.3%**, reported as 96%.
+
+| Mutator | Generated | Killed | Survived |
+|---|---:|---:|---:|
+| `ConditionalsBoundaryMutator` | 5 | 1 | 4 |
+| `NegateConditionalsMutator` | 15 | 15 | 0 |
+| `NullReturnValsMutator` | 3 | 3 | 0 |
+| **Total** | **23** | **19** | **4** |
+
+All four survivors were conditional-boundary mutations. This suggests weaker test sensitivity to certain strict-versus-inclusive comparisons, despite high line coverage; the individual changed lines and possible equivalent mutants have **not yet been classified**. No additional production defect was established by these mutation results. The missing PIT TestNG plugin warning is not a test-run failure: PIT executed JUnit Jupiter tests successfully, as evidenced by killed mutants.
+
+**Evaluation:** These metrics describe different dimensions of adequacy. JaCoCo measures execution, while PIT measures how often the selected tests detected synthetic faults. The PIT sample comprises one production class and must not be presented as a project-wide mutation score. No new tests were added in LO3-E; the exercise established a structural and mutation baseline for further evaluation.
+
+**Evidence:**
+
+- [LO3-E-jacoco-test-run.txt](LO3-E-jacoco-test-run.txt) — 97 passing tests and JaCoCo report generation.
+- [LO3-E-jacoco.csv](LO3-E-jacoco.csv) — auditable class-level coverage counters.
+- [LO3-E-pitest-run.txt](LO3-E-pitest-run.txt) — PIT run, operator breakdown and mutation summary.
+- PIT HTML/XML reports were generated locally but are **not included** in the current `docs/coursework` directory. The report summary screenshot alone does not identify the four surviving mutations by source line.
+
+
 
 ## References
 
 - [Software Testing Tutorial LO3 and Sample Testing Evidence](https://opencourse.inf.ed.ac.uk/st/week-6-7).
-- Young and Pezzè, Chapter 10, Functional Testing, particularly slides 8, 11, 13 and 18.
+- Young and Pezzè, Chapter 5: Finite Models; Chapter 10: Functional Testing; Chapter 11: Combinatorial Testing; Chapter 12: Structural Testing; Chapter 14: Model-based Testing; Chapter 16: Fault-based Testing; Chapters 21–22: Integration and System Testing.
+- Mini Aladdin: `TradeService.java`, `TradeController.java`, `PortfolioValuationCalculator.java`, `PortfolioValuationService.java` and `docs/API.md`.

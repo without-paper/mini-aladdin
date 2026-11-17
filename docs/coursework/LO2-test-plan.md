@@ -21,7 +21,7 @@ R2 requires complementary component, integration and API evidence because mocked
 
 **Existing instrumentation.** `CorrelationIdFilter` and MDC logging expose request context. `TradeMetrics` distinguishes executed, rejected and replayed trades. `TransactionalTradeMetrics` records new executions after transaction commit. `TransactionalTradeMetricsIntegrationTest` verifies that rolled-back transactions do not increment the executed counter. `PortfolioValuationService` checks accounting invariants.
 
-For R2, the existing concurrency test will be extended to compare executed and replayed counter increments with the actual persisted trade. For R7, the existing benchmark will be extended to retain individual request latencies, response outcomes, workload details and environment information.
+For R2, the concurrency test was extended to compare executed and replayed counter increments with the actual persisted trade. The extended test passed and remains part of the 97-test regression suite; see [instrumentation evidence](LO2-instrumentation-test-run.txt). For R7, the existing benchmark will be extended to retain individual request latencies, response outcomes, workload details and environment information.
 
 **Evaluation.** PostgreSQL scaffolding provides stronger evidence of actual transaction behaviour than repository mocks. However, a finite collection of concurrent schedules cannot establish correctness under all interleavings. Aggregate metrics support diagnosis but cannot independently establish the correctness of individual transactions. Database state and API results remain necessary oracles. Shared counters also require controlled test execution to avoid interference. Performance measurements must identify their workload and environment; aggregate latency values alone provide insufficient evidence of general performance.
 
@@ -45,6 +45,14 @@ Changes addressing discovered defects will use test-first regression development
 The plan prioritises core correctness and reuses established testing infrastructure to limit effort. Remaining limitations include incomplete coverage of concurrent behaviour and the absence of a real production workload. Therefore, the resulting assurance will be restricted to the selected requirements and tested conditions.
 
 Progress will be monitored using requirement IDs, completed test tasks, Git commits, test execution reports and defect records. Any planned activity that cannot be completed will be identified in the final evaluation.
+
+## 4. Plan Execution Status (17 November 2026)
+
+The R2 instrumentation and concurrency checks were completed. Specification-based boundary tests, category-partition tests and an idempotency state-machine sequence were added during LO3-A–C. A fractional-cent valuation reconciliation defect (D-02) was reproduced at component and API levels, corrected through an explicit cost-allocation policy and verified by a 97-test passing regression suite in LO3-D.
+
+LO3-E established a JaCoCo baseline of **574/615 covered lines (93.3%)** and **123/180 covered branches (68.3%)**. The selected `PortfolioValuationCalculator` mutation experiment killed **19/23 mutants (83% PIT-reported mutation coverage)**, with four surviving conditional-boundary mutants requiring further interpretation. See [LO3 results](LO3-test-results.md) and [LO3 test design](LO3-test-design.md).
+
+The R7 workload-specific performance experiment remains **pending**. The existing benchmark must not be treated as confirmation of the proposed R7 acceptance criterion without matching workload and environment records. These results demonstrate progress against the original plan while retaining the stated limits on concurrency and financial assurance.
 
 ## References
 
