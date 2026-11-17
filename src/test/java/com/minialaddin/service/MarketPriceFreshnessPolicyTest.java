@@ -7,6 +7,8 @@ import com.minialaddin.exception.StaleMarketPriceException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -138,4 +140,37 @@ class MarketPriceFreshnessPolicyTest {
                 () -> policy.validateAt(report, NOW)
         );
     }
+
+
+    @ParameterizedTest(name = "Quote offset={0}s, accepted={1}")
+    @CsvSource({
+            "-86401, false",
+            "-86400, true",
+            "-86399, true",
+            "299, true",
+            "300, true",
+            "301, false"
+    })
+    void shouldRespectQuoteFreshnessBoundaries(
+            long offsetSeconds,
+            boolean accepted
+    ) {
+        // Arrange
+        var report = reportWithQuote(
+                NOW.plusSeconds(offsetSeconds)
+        );
+
+        // Act & Assert
+        if (accepted) {
+            assertDoesNotThrow(
+                    () -> policy.validateAt(report, NOW)
+            );
+        } else {
+            assertThrows(
+                    StaleMarketPriceException.class,
+                    () -> policy.validateAt(report, NOW)
+            );
+        }
+    }
+
 }

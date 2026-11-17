@@ -22,6 +22,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.context.annotation.Import;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.List;
 
@@ -164,7 +167,8 @@ class TradeServiceTest {
                 () -> service.executeTrade(1L, request, "test-trade-0001")
         );
 
-        verify(tradeRepository, never()).save(any(Trade.class));
+        verify(tradeRepository, never())
+                .saveAndFlush(any(Trade.class));
     }
 
     @Test
@@ -201,7 +205,150 @@ class TradeServiceTest {
                 () -> service.executeTrade(1L, request, "test-trade-0001")
         );
 
-        verify(tradeRepository, never()).save(any(Trade.class));
+        verify(tradeRepository, never())
+                .saveAndFlush(any(Trade.class));
+    }
+
+
+
+    @ParameterizedTest(name = "BUY: cash={0}, accepted={1}")
+    @CsvSource({
+            "999.99, false",
+            "1000.00, true",
+            "1000.01, true"
+    })
+    void shouldRespectBuyCashBoundary(
+            String initialCash,
+            boolean accepted
+    ) {
+        // Arrange
+        Portfolio portfolio = new Portfolio(
+                "BUY Boundary Fund",
+                new BigDecimal(initialCash)
+        );
+
+        when(portfolioRepository.findByIdForUpdate(1L))
+                .thenReturn(Optional.of(portfolio));
+
+        when(tradeRepository
+                .findByPortfolioIdOrderByExecutedAtAscIdAsc(1L))
+                .thenReturn(List.of());
+
+        when(tradeRepository.saveAndFlush(any(Trade.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        CreateTradeRequest request = new CreateTradeRequest(
+                "AAPL",
+                TradeSide.BUY,
+                new BigDecimal("10"),
+                new BigDecimal("100.00")
+        );
+
+        // Act & Assert
+        if (accepted) {
+            TradeExecutionResult result = service.executeTrade(
+                    1L,
+                    request,
+                    "buy-boundary-0001"
+            );
+
+            assertFalse(result.replayed());
+            assertEquals("AAPL", result.trade().symbol());
+            assertEquals(TradeSide.BUY, result.trade().side());
+
+            verify(tradeRepository, times(1))
+                    .saveAndFlush(any(Trade.class));
+
+        } else {
+            assertThrows(
+                    TradeRejectedException.class,
+                    () -> service.executeTrade(
+                            1L,
+                            request,
+                            "buy-boundary-0001"
+                    )
+            );
+
+            verify(tradeRepository, never())
+                    .saveAndFlush(any(Trade.class));
+        }
+    }
+
+
+    @ParameterizedTest(name = "SELL: quantity={0}, accepted={1}")
+    @CsvSource({
+            "9, true",
+            "10, true",
+            "11, false"
+    })
+    void shouldRespectSellHoldingBoundary(
+            String sellQuantity,
+            boolean accepted
+    ) {
+        // Arrange: portfolio already holds 10 AAPL shares
+        Portfolio portfolio = new Portfolio(
+                "SELL Boundary Fund",
+                new BigDecimal("10000.00")
+        );
+
+        Trade previousBuy = new Trade(
+                portfolio,
+                "AAPL",
+                TradeSide.BUY,
+                new BigDecimal("10"),
+                new BigDecimal("100.00")
+        );
+
+        when(portfolioRepository.findByIdForUpdate(1L))
+                .thenReturn(Optional.of(portfolio));
+
+        when(tradeRepository
+                .findByPortfolioIdOrderByExecutedAtAscIdAsc(1L))
+                .thenReturn(List.of(previousBuy));
+
+        when(tradeRepository.saveAndFlush(any(Trade.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        CreateTradeRequest request = new CreateTradeRequest(
+                "AAPL",
+                TradeSide.SELL,
+                new BigDecimal(sellQuantity),
+                new BigDecimal("120.00")
+        );
+
+        // Act & Assert
+        if (accepted) {
+            TradeExecutionResult result = service.executeTrade(
+                    1L,
+                    request,
+                    "sell-boundary-0001"
+            );
+
+            assertFalse(result.replayed());
+            assertEquals(TradeSide.SELL, result.trade().side());
+
+            assertEquals(
+                    0,
+                    new BigDecimal(sellQuantity)
+                            .compareTo(result.trade().quantity())
+            );
+
+            verify(tradeRepository, times(1))
+                    .saveAndFlush(any(Trade.class));
+
+        } else {
+            assertThrows(
+                    TradeRejectedException.class,
+                    () -> service.executeTrade(
+                            1L,
+                            request,
+                            "sell-boundary-0001"
+                    )
+            );
+
+            verify(tradeRepository, never())
+                    .saveAndFlush(any(Trade.class));
+        }
     }
 
 }
