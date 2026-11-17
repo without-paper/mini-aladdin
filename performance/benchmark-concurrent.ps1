@@ -17,7 +17,6 @@ if ($Concurrency -lt 1 -or $Requests -lt 1) {
 $url = "http://localhost:8080/api/portfolios/$PortfolioId/valuation"
 
 $jobs = @()
-$allResults = @()
 
 $watch = [System.Diagnostics.Stopwatch]::StartNew()
 
@@ -76,7 +75,6 @@ try {
         $jobs | Remove-Job
 
         $jobs = @()
-        $allResults = @()
         $remaining -= $batch
     }
 
@@ -88,6 +86,12 @@ try {
 
     $watch.Stop()
 }
+
+if ($allResults.Count -ne $Requests) {
+    throw "Expected $Requests results, got $($allResults.Count)"
+}
+
+Write-Host "Collected results: $($allResults.Count)"
 
 $latencies = @($allResults | ForEach-Object {
     $_.DurationMs

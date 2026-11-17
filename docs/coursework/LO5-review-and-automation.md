@@ -10,7 +10,7 @@ The selected review criteria are correctness, consistency with requirements, unn
 
 | ID | Component | Finding | Severity and status |
 |---|---|---|---|
-| RV-01 | `performance/benchmark-concurrent.ps1` | `$allResults` is cleared inside the measurement loop, discarding collected observations before aggregate statistics are calculated. | Medium; confirmed by inspection; fix pending verification |
+| RV-01 | `performance/benchmark-concurrent.ps1` | `$allResults` is cleared inside the measurement loop, discarding collected observations before aggregate statistics are calculated. | Medium; fixed and verified through a 10-request execution with complete result collection |
 | RV-02 | `performance/benchmark-concurrent.ps1` | PowerShell `Start-Job` introduces process creation and scheduling overhead, limiting the validity of the resulting throughput measurement as a measure of server capacity. | Measurement limitation; documented |
 | RV-03 | `PortfolioValuationCalculator.java` | `PositionState.realisedPnl` is updated but never used to calculate the returned valuation. This redundant state increases maintenance complexity. | Low; improvement proposed |
 
@@ -21,6 +21,8 @@ The review identified an issue affecting the integrity of a supplementary benchm
 These findings illustrate how source inspection can reveal issues that existing regression tests do not directly exercise. Neither RV-02 nor RV-03 establishes a production functional defect. RV-01 does not affect the independently executed R7 sequential performance experiment.
 
 The proposed remediation for RV-01 is to preserve accumulated measurements and assert the expected result count. RV-03 can be addressed by removing unused state, followed by regression verification.
+
+RV-01 was corrected by preserving the accumulated measurement results and adding an assertion for the expected request count. A follow-up execution verified that all requested observations were collected and aggregate latency statistics could be calculated. The original measurement-validity limitation caused by PowerShell job overhead remains.
 
 ## 2. CI Pipeline Design (LO5.2)
 
