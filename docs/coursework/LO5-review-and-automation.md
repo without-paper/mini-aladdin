@@ -10,19 +10,21 @@ The selected review criteria are correctness, consistency with requirements, unn
 
 | ID | Component | Finding | Severity and status |
 |---|---|---|---|
-| RV-01 | `performance/benchmark-concurrent.ps1` | `$allResults` is cleared inside the measurement loop, discarding collected observations before aggregate statistics are calculated. | Medium; fixed and verified through a 10-request execution with complete result collection |
+| RV-01 | `performance/benchmark-concurrent.ps1` | `$allResults` was cleared inside the measurement loop, discarding collected observations before aggregate statistics were calculated. | Medium; fixed by retaining accumulated results and checking the expected request count. Verified with a 10-request execution. |
 | RV-02 | `performance/benchmark-concurrent.ps1` | PowerShell `Start-Job` introduces process creation and scheduling overhead, limiting the validity of the resulting throughput measurement as a measure of server capacity. | Measurement limitation; documented |
 | RV-03 | `PortfolioValuationCalculator.java` | `PositionState.realisedPnl` is updated but never used to calculate the returned valuation. This redundant state increases maintenance complexity. | Low; improvement proposed |
 
 ### 1.2 Evaluation
 
-The review identified an issue affecting the integrity of a supplementary benchmark and a maintainability weakness in financial calculation code.
+The inspection identified a defect affecting the integrity of a supplementary benchmark and a maintainability weakness in the financial calculation code.
 
-These findings illustrate how source inspection can reveal issues that existing regression tests do not directly exercise. Neither RV-02 nor RV-03 establishes a production functional defect. RV-01 does not affect the independently executed R7 sequential performance experiment.
+RV-01 was corrected by removing the unintended reset of `$allResults` inside the measurement loop, explicitly initialising the result collection and adding a check that the number of collected observations matches the requested count.
 
-The proposed remediation for RV-01 is to preserve accumulated measurements and assert the expected result count. RV-03 can be addressed by removing unused state, followed by regression verification.
+A follow-up execution with 10 requests and a concurrency level of 2 verified that all observations were retained and aggregate latency statistics could be calculated successfully. The execution output was preserved as evidence in [`LO5-RV01-verification.txt`](LO5-RV01-verification.txt).
 
-RV-01 was corrected by preserving the accumulated measurement results and adding an assertion for the expected request count. A follow-up execution verified that all requested observations were collected and aggregate latency statistics could be calculated. The original measurement-validity limitation caused by PowerShell job overhead remains.
+RV-02 remains a measurement limitation because PowerShell `Start-Job` introduces process creation and scheduling overhead. RV-03 remains a proposed maintainability improvement; the unused state could be removed and the existing regression suite rerun to check for unintended behavioural changes.
+
+These findings demonstrate that code inspection can identify defects and maintainability concerns beyond those detected by automated tests. RV-01 does not affect the independently executed R7 sequential performance experiment, and neither RV-02 nor RV-03 establishes a functional production defect.
 
 ## 2. CI Pipeline Design (LO5.2)
 
@@ -60,8 +62,14 @@ The workflow does not currently perform production deployment, security testing,
 
 ## 5. Limitations and Follow-up
 
-The code review covers selected components and is not a comprehensive security or financial audit. The proposed source changes require independent verification, and the CI evidence cannot establish the absence of undetected defects.
+The code inspection was limited to selected components and does not constitute a comprehensive security, performance or financial audit.
 
-Further improvements could include targeted static analysis, verification of review findings, preservation of coverage artifacts and risk-based acceptance checks for new test gaps.
+RV-01 was corrected and verified through a targeted execution. However, this verification establishes only that the benchmark retains the expected number of measurements and calculates aggregate statistics for the tested configuration. It does not establish accurate server-side performance measurement under arbitrary concurrency levels.
+
+RV-02 remains an inherent limitation of the current PowerShell benchmarking approach, while RV-03 is an identified maintainability improvement that has not yet been implemented.
+
+The CI pipeline provides automated regression feedback and prevents Docker image construction when Maven tests fail. However, it does not guarantee the absence of undetected defects. Mutation testing, performance acceptance testing and security testing are not currently mandatory CI stages.
+
+Further improvements could include targeted static analysis, stronger review checklists, preservation of JaCoCo reports as CI artifacts and additional tests addressing uncovered branches and surviving mutants.
 
 **References:** Software Testing Tutorial LO5; Young and Pezzè Chapters 18, 23 and 24; project source code and GitHub Actions execution history.

@@ -17,7 +17,7 @@ if ($Concurrency -lt 1 -or $Requests -lt 1) {
 $url = "http://localhost:8080/api/portfolios/$PortfolioId/valuation"
 
 $jobs = @()
-
+$allResults = @()
 $watch = [System.Diagnostics.Stopwatch]::StartNew()
 
 try {
@@ -75,6 +75,7 @@ try {
         $jobs | Remove-Job
 
         $jobs = @()
+
         $remaining -= $batch
     }
 
