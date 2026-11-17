@@ -124,6 +124,61 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.16</version>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.pitest</groupId>
+				<artifactId>pitest-maven</artifactId>
+				<version>1.30.2</version>
+
+				<dependencies>
+					<dependency>
+						<groupId>org.pitest</groupId>
+						<artifactId>pitest-junit5-plugin</artifactId>
+						<version>1.2.3</version>
+					</dependency>
+				</dependencies>
+
+				<configuration>
+					<targetClasses>
+						<param>com.minialaddin.service.PortfolioValuationCalculator</param>
+					</targetClasses>
+
+					<targetTests>
+						<param>com.minialaddin.service.PortfolioValuationCalculatorTest</param>
+						<param>com.minialaddin.service.PortfolioValuationRegressionTest</param>
+						<param>com.minialaddin.service.PortfolioValuationRoundingRegressionTest</param>
+					</targetTests>
+
+					<threads>1</threads>
+					<timestampedReports>false</timestampedReports>
+
+					<outputFormats>
+						<param>HTML</param>
+						<param>XML</param>
+					</outputFormats>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 

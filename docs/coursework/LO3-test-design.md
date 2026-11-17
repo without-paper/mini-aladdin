@@ -34,9 +34,9 @@ Equality is a particularly important boundary within each valid trade partition.
 
 | ID | Requirement | Input and precondition | Expected result |
 |---|---|---|---|
-| FT-01 | R1 | BUY 10 shares at $100; cash $999.99 | Reject; no persistence call |
-| FT-02 | R1 | BUY 10 shares at $100; cash $1,000.00 | Accept; one persistence call |
-| FT-03 | R1 | BUY 10 shares at $100; cash $1,000.01 | Accept; one persistence call |
+| FT-01 | R1 | BUY 10 shares at \$100; cash \$999.99 | Reject; no persistence call |
+| FT-02 | R1 | BUY 10 shares at \$100; cash \$1,000.00 | Accept; one persistence call |
+| FT-03 | R1 | BUY 10 shares at \$100; cash \$1,000.01 | Accept; one persistence call |
 | FT-04 | R1 | Hold 10 shares; SELL 9 | Accept; one persistence call |
 | FT-05 | R1 | Hold 10 shares; SELL 10 | Accept; one persistence call |
 | FT-06 | R1 | Hold 10 shares; SELL 11 | Reject; no persistence call |
@@ -174,15 +174,15 @@ The model focuses on valid request keys and selected business outcomes. Invalid 
 
 ### 4.3 Test Sequence
 
-A portfolio with initial cash of $200 is created. Five requests are executed sequentially using the same idempotency key.
+A portfolio with initial cash of \$200 is created. Five requests are executed sequentially using the same idempotency key.
 
 | Step | Event | Expected HTTP | Expected trade count | Expected cash |
 |---|---|---|---|---|
-| 1 | BUY 3 at $100 | 400 | 0 | $200 |
-| 2 | BUY 2 at $100 | 201 | 1 | $0 |
-| 3 | Equivalent replay of step 2 | 200 | 1 | $0 |
-| 4 | Conflicting BUY 1 at $100 | 409 | 1 | $0 |
-| 5 | Replay the original valid request | 200 | 1 | $0 |
+| 1 | BUY 3 at \$100 | 400 | 0 | \$200 |
+| 2 | BUY 2 at \$100 | 201 | 1 | \$0 |
+| 3 | Equivalent replay of step 2 | 200 | 1 | \$0 |
+| 4 | Conflicting BUY 1 at \$100 | 409 | 1 | \$0 |
+| 5 | Replay the original valid request | 200 | 1 | \$0 |
 
 The sequence traverses T1 → T2 → T3 → T4 → T3.
 
@@ -236,20 +236,20 @@ Existing valuation tests use transaction histories whose cost allocations do not
 
 ### 5.2 Test Specification
 
-A portfolio starts with $100.00 and performs three transactions:
+A portfolio starts with \$100.00 and performs three transactions:
 
-1. BUY 1 AAPL at $0.01.
-2. BUY 1 AAPL at $0.02.
-3. SELL 1 AAPL at $0.02.
+1. BUY 1 AAPL at \$0.01.
+2. BUY 1 AAPL at \$0.02.
+3. SELL 1 AAPL at \$0.02.
 
-The remaining share has a market price of $0.02.
+The remaining share has a market price of \$0.02.
 
 An independent cash-flow oracle gives:
 
-- Available cash: $99.99
-- Market value: $0.02
-- Total portfolio value: $100.01
-- Total P&L: $0.01
+- Available cash: \$99.99
+- Market value: \$0.02
+- Total portfolio value: \$100.01
+- Total P&L: \$0.01
 
 The reported realised and unrealised P&L must sum to the reported total P&L.
 
@@ -269,19 +269,73 @@ The selected tests provide focused evidence for this rounding scenario. They do 
 
 Both targeted tests were executed against the pre-fix code and failed, providing complementary evidence of one production defect (D-02).
 
-- **Unit regression test:** 1 test executed, 1 failed, 0 errors. `PortfolioValuationRoundingRegressionTest.shouldReconcilePnlAfterPartialSaleWithFractionalCost` failed at line 86: `expected: <0> but was: <-1>`. Its earlier independent cash-flow assertions passed: available cash $99.99, market value $0.02, total value $100.01 and total P&L $0.01. The failed assertion compares total P&L with the sum of reported realised and unrealised P&L.
+- **Unit regression test:** 1 test executed, 1 failed, 0 errors. `PortfolioValuationRoundingRegressionTest.shouldReconcilePnlAfterPartialSaleWithFractionalCost` failed at line 86: `expected: <0> but was: <-1>`. Its earlier independent cash-flow assertions passed: available cash \$99.99, market value \$0.02, total value \$100.01 and total P&L \$0.01. The failed assertion compares total P&L with the sum of reported realised and unrealised P&L.
 - **Integration test:** 1 test executed, 1 failed, 0 errors. `PortfolioValuationRoundingIntegrationTest.shouldReturnReconciledValuationThroughApi` expected HTTP 200 but received 500 (line 84). Application logs identify `IllegalStateException: P&L components do not reconcile` in `PortfolioValuationService.validateAccountingInvariant()`.
-- **Confirmed root cause:** `PortfolioValuationCalculator` independently rounds realised P&L, unrealised P&L and total P&L to two decimal places with `HALF_UP`. In the specified trade history, the two exact components are $0.005 each. Individually reported, they become $0.01 and $0.01, while rounded total P&L is $0.01. Their displayed sum therefore disagrees with the displayed total, triggering the service-level accounting invariant.
-- **Corrective action:** Pending. A consistent rounding and allocation policy must be documented and implemented, with attention to both portfolio-level and position-level totals.
-- **Post-fix regression result:** Pending; no successful post-fix report is available in the reviewed branch.
-- **Confirmed production defects:** 1 (D-02). The two failures are observations of the same underlying defect, not two distinct defects.
+- **Confirmed root cause:** `PortfolioValuationCalculator` independently rounds realised P&L, unrealised P&L and total P&L to two decimal places with `HALF_UP`. In the specified trade history, the two exact components are \$0.005 each. Individually reported, they become \$0.01 and \$0.01, while rounded total P&L is \$0.01. Their displayed sum therefore disagrees with the displayed total, triggering the service-level accounting invariant.
+- **Corrective action:** The cost basis allocated to a partial sale is now rounded to two decimal places using `HALF_UP`. The residual cost remains assigned to the unsold position. The regression test was strengthened to verify realised P&L, unrealised P&L, remaining cost basis and position-level consistency.
+- **Post-fix regression result:** Both targeted tests passed. The full Maven regression suite completed with **97 tests, 0 failures, 0 errors and 0 skipped tests**.
+- **Confirmed production defects:** 1 (D-02), reproduced by two tests and subsequently fixed.
 
-The last verified successful full-suite run comprised 95 tests before these two regression tests were added. A new full-suite execution is required after correction. The targeted evidence establishes reproducibility for this scenario, but not the frequency of the problem in other portfolios.
+The fix restored accounting reconciliation in the identified fractional-cent scenario without causing failures in the existing regression suite. This evidence supports the selected rounding policy, although it does not establish correctness for every possible financial history.
 
-**Evidence:**
-- [LO3-D-rounding-before-fix.txt](LO3-D-rounding-before-fix.txt)
-- [LO3-D-integration-before-fix.txt](LO3-D-integration-before-fix.txt)
-- `LO3-D-rounding-after-fix.txt` (pending)
+**Post-fix evidence:** [LO3-D-rounding-after-fix.txt](LO3-D-rounding-after-fix.txt).
+
+## 6. Structural and Fault-based Testing
+
+### 6.1 Objectives and Scope
+
+Structural testing was selected to assess how thoroughly the existing test suite exercises the implementation. Mutation testing was selected to evaluate the suite's ability to detect faults introduced into production code.
+
+The initial analysis focuses on `TradeService`, `PortfolioValuationCalculator` and `MarketPriceFreshnessPolicy`, which implement the core trading, valuation and quote freshness requirements.
+
+### 6.2 Structural Coverage
+
+JaCoCo 0.8.16 is configured to collect execution coverage during the Maven verification lifecycle.
+
+Line and branch coverage are measured for the selected classes. Uncovered branches will be inspected against the associated requirements and existing test cases.
+
+Coverage results will be interpreted alongside the functional and model-based evidence. High structural coverage alone does not establish that test assertions are sufficiently strong.
+
+### 6.3 Mutation Testing
+
+PIT 1.30.2, with the JUnit platform plugin, is configured to analyse `PortfolioValuationCalculator` using three existing calculator-focused test classes.
+
+The initial mutation analysis is deliberately restricted to this component to keep the experiment manageable and support detailed examination of surviving mutants.
+
+Mutations will be classified according to their reported status. Surviving mutants will be inspected to determine whether they indicate a missing test, an insufficient oracle or behaviourally equivalent code.
+
+### 6.4 Adequacy Criteria
+
+The analysis will report:
+
+- Line coverage of selected production classes.
+- Branch coverage of selected production classes.
+- Killed, survived and uncovered mutants.
+- PIT-reported mutation coverage.
+- Specific uncovered branches or surviving mutants requiring further testing.
+
+Initial measurements will establish a baseline before additional test cases are designed. Any subsequent test improvements will be evaluated by comparing the results under the same configuration.
+
+### 6.5 Execution Results
+
+To be completed after execution:
+
+- JaCoCo full-suite result: TBD
+- TradeService line / branch coverage: TBD
+- PortfolioValuationCalculator line / branch coverage: TBD
+- MarketPriceFreshnessPolicy line / branch coverage: TBD
+- PIT mutants generated: TBD
+- Mutants killed: TBD
+- Mutants survived: TBD
+- Mutation coverage: TBD
+- Additional tests or findings: TBD
+
+Evidence:
+
+- `LO3-E-jacoco-test-run.txt`
+- `LO3-E-jacoco.csv`
+- `LO3-E-pitest-run.txt`
+- PIT HTML/XML reports.
 
 ### References
 
