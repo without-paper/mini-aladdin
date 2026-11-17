@@ -214,14 +214,17 @@ Full transition coverage therefore does not imply complete behavioural correctne
 
 ### 4.7 Execution Results
 
-Complete after test execution:
+The model-based test completed successfully. The five-event sequence T1 → T2 → T3 → T4 → T3 checked expected HTTP responses, persisted trade counts, cash balances, the original trade ID on replay, and the final position.
 
-- States visited: TBD / 2
-- Transitions exercised: TBD / 4
-- Test result: TBD
-- Confirmed production defects: TBD
+- **States visited:** 2 / 2 (100% state coverage of the defined model).
+- **Transitions exercised:** 4 / 4 (100% transition coverage of the defined model).
+- **Model-based test:** 1 / 1 passed.
+- **Full regression suite:** 95 tests passed; 0 failures, 0 errors, 0 skipped.
+- **Production defects confirmed in LO3-C:** 0.
 
-Evidence: `LO3-C-model-based-test-run.txt`.
+Coverage is relative to the selected two-state, four-transition model; other request histories and concurrent interleavings remain outside its scope.
+
+**Evidence:** [LO3-C-model-based-test-run.txt](LO3-C-model-based-test-run.txt).
 
 ## 5. Regression and Integration Testing
 
@@ -264,18 +267,20 @@ The selected tests provide focused evidence for this rounding scenario. They do 
 
 ### 5.5 Execution Results and Defect Record
 
-To be completed after execution:
+Both targeted tests were executed against the pre-fix code and failed, providing complementary evidence of one production defect (D-02).
 
-- Unit regression test: TBD
-- Integration test: TBD
-- Confirmed root cause: TBD
-- Corrective action: TBD
-- Post-fix regression result: TBD
-- Confirmed production defects: TBD
+- **Unit regression test:** 1 test executed, 1 failed, 0 errors. `PortfolioValuationRoundingRegressionTest.shouldReconcilePnlAfterPartialSaleWithFractionalCost` failed at line 86: `expected: <0> but was: <-1>`. Its earlier independent cash-flow assertions passed: available cash $99.99, market value $0.02, total value $100.01 and total P&L $0.01. The failed assertion compares total P&L with the sum of reported realised and unrealised P&L.
+- **Integration test:** 1 test executed, 1 failed, 0 errors. `PortfolioValuationRoundingIntegrationTest.shouldReturnReconciledValuationThroughApi` expected HTTP 200 but received 500 (line 84). Application logs identify `IllegalStateException: P&L components do not reconcile` in `PortfolioValuationService.validateAccountingInvariant()`.
+- **Confirmed root cause:** `PortfolioValuationCalculator` independently rounds realised P&L, unrealised P&L and total P&L to two decimal places with `HALF_UP`. In the specified trade history, the two exact components are $0.005 each. Individually reported, they become $0.01 and $0.01, while rounded total P&L is $0.01. Their displayed sum therefore disagrees with the displayed total, triggering the service-level accounting invariant.
+- **Corrective action:** Pending. A consistent rounding and allocation policy must be documented and implemented, with attention to both portfolio-level and position-level totals.
+- **Post-fix regression result:** Pending; no successful post-fix report is available in the reviewed branch.
+- **Confirmed production defects:** 1 (D-02). The two failures are observations of the same underlying defect, not two distinct defects.
 
-Evidence:
-- `LO3-D-rounding-before-fix.txt`
-- `LO3-D-integration-before-fix.txt`
+The last verified successful full-suite run comprised 95 tests before these two regression tests were added. A new full-suite execution is required after correction. The targeted evidence establishes reproducibility for this scenario, but not the frequency of the problem in other portfolios.
+
+**Evidence:**
+- [LO3-D-rounding-before-fix.txt](LO3-D-rounding-before-fix.txt)
+- [LO3-D-integration-before-fix.txt](LO3-D-integration-before-fix.txt)
 - `LO3-D-rounding-after-fix.txt` (pending)
 
 ### References
