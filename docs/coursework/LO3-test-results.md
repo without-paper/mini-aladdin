@@ -84,4 +84,8 @@ All four surviving mutants came from boundary-operator mutations. Their exact lo
 - [LO3-E JaCoCo test run](LO3-E-jacoco-test-run.txt)
 - [LO3-E raw coverage CSV](LO3-E-jacoco.csv)
 - [LO3-E PIT log](LO3-E-pitest-run.txt)
+- [LO3-F R7 benchmark summary](LO3-F-r7-run.txt)
+- [LO3-F raw latency measurements](r7-F1F66185-raw.csv)
+- [LO3-F per-run statistics](r7-F1F66185-summary.csv)
+- [LO3-F environment metadata](r7-F1F66185-environment.json)
 - [Detailed LO3 test design](LO3-test-design.md)
