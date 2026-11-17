@@ -29,6 +29,11 @@ These stakeholders represent the intended users and maintainers of the education
 | R7 | Under the defined local benchmark workload, portfolio valuation shall achieve a P95 response time of at most 200 ms. | Measurable performance | Trader |
 | R8 | Request identifiers, diagnostic logs and trade metrics shall enable maintainers to trace requests and distinguish committed, rejected and replayed trades. | Qualitative diagnosability | Operator |
 
+
+### R2 Refinement — Rejected Requests
+
+A trade request rejected by a business rule shall not persist an idempotency-key binding. A subsequent valid request using the same key may execute normally, provided no successful trade has since bound that key to a different request.
+
 R7 is a proposed coursework requirement, rather than an existing production service-level agreement. Its operational envelope comprises a local Docker deployment, PostgreSQL 17, 100 historical trades, 10 open positions, fresh quotes and one sequential client. The target will be evaluated using three runs of 100 measured requests, each following 20 warm-up requests.
 
 ## 4. Requirement Levels and Testing Approaches

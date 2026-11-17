@@ -129,15 +129,105 @@ This testing provides systematic evidence about the interactions among the three
 
 ### 3.5 Execution Results
 
-To be completed after running the tests:
+The combinatorial tests were executed successfully using JUnit, Spring MockMvc and PostgreSQL Testcontainers.
 
-- Executed normal-domain combinations: TBD / 12
-- Error-choice tests executed: TBD / 1
-- Tests passed: TBD
-- Combination coverage: TBD
-- Production defects confirmed: TBD
+- **Executed normal-domain combinations:** 12 / 12
+- **Error-choice tests executed:** 1 / 1
+- **New tests passed:** 13 / 13
+- **Combination coverage:** 100% (12 / 12 feasible combinations)
+- **Full regression suite:** 94 tests passed, 0 failures, 0 errors, 0 skipped
+- **Production defects confirmed:** 0
 
-Evidence: `LO3-B-combinatorial-test-run.txt`.
+All defined test frames produced the expected HTTP responses, persisted trade counts and portfolio cash balances. The results confirm the expected idempotency behaviour for the selected combinations of portfolio, request key and payload.
+
+The 100% combination coverage applies only to the three defined categories. It does not guarantee correctness for other inputs, business states or concurrent executions.
+
+**Evidence:** `LO3-B-combinatorial-test-run.txt`.
+
+## 4. Model-based Testing
+
+### 4.1 Test Basis and Model Selection
+
+Model-based testing was applied to R2 (idempotent trade execution), following Young and Pezzè Chapters 5 and 14.
+
+The model describes the lifecycle of a single idempotency key within a particular portfolio. It abstracts away unrelated portfolio details while retaining the information needed to distinguish new executions, successful replays, business-rule rejection and conflicts.
+
+Two states were defined:
+
+- **U (Unbound):** No committed trade is associated with the selected key in the portfolio.
+- **B (Bound):** The key is associated with a committed trade and its canonical request fingerprint.
+
+### 4.2 Finite State Machine
+
+| Transition | Initial state | Event and condition | Output | Final state |
+|---|---|---|---|---|
+| T1 | U | Business-rule rejection (insufficient cash) | HTTP 400 | U |
+| T2 | U | Valid executable trade | HTTP 201 | B |
+| T3 | B | Same key and equivalent canonical request | HTTP 200; original trade | B |
+| T4 | B | Same key and conflicting request | HTTP 409 | B |
+
+The model is a Mealy-style state machine, where observable outputs depend on the current state and input event.
+
+Business-rule rejection does not bind the key. Successful execution creates the binding, while subsequent replays and conflicts preserve it.
+
+The model focuses on valid request keys and selected business outcomes. Invalid HTTP input, cross-portfolio interactions and concurrency are addressed by complementary tests.
+
+### 4.3 Test Sequence
+
+A portfolio with initial cash of $200 is created. Five requests are executed sequentially using the same idempotency key.
+
+| Step | Event | Expected HTTP | Expected trade count | Expected cash |
+|---|---|---|---|---|
+| 1 | BUY 3 at $100 | 400 | 0 | $200 |
+| 2 | BUY 2 at $100 | 201 | 1 | $0 |
+| 3 | Equivalent replay of step 2 | 200 | 1 | $0 |
+| 4 | Conflicting BUY 1 at $100 | 409 | 1 | $0 |
+| 5 | Replay the original valid request | 200 | 1 | $0 |
+
+The sequence traverses T1 → T2 → T3 → T4 → T3.
+
+It verifies that a rejected trade does not reserve the key and that a subsequent conflict does not corrupt the original binding.
+
+### 4.4 Test Implementation and Oracles
+
+The test is implemented in `TradeIdempotencyStateMachineTest.java` using JUnit, MockMvc and PostgreSQL Testcontainers.
+
+After each transition, the test checks the expected HTTP response, persisted trade count and available cash. Replay requests must return the original trade identifier. The final portfolio must contain exactly two AAPL shares.
+
+The model and its expected observations are defined before execution.
+
+### 4.5 Adequacy Criteria
+
+The selected adequacy criteria are:
+
+- **State coverage:** Both defined states are visited (target: 2/2).
+- **Transition coverage:** All four defined transitions are exercised (target: 4/4).
+- **Sequence correctness:** The specified five-event sequence produces all expected outcomes.
+
+The test also exercises the transition pair T4 → T3, checking that an idempotency conflict does not prevent a later valid replay.
+
+### 4.6 Limitations
+
+The FSM is an abstraction of a single key within one portfolio. It does not represent every invalid input, multiple interacting keys, all financial states or concurrent request interleavings.
+
+Full transition coverage therefore does not imply complete behavioural correctness. The model-based test complements the combinatorial and concurrency integration tests.
+
+### 4.7 Execution Results
+
+Complete after test execution:
+
+- States visited: TBD / 2
+- Transitions exercised: TBD / 4
+- Test result: TBD
+- Confirmed production defects: TBD
+
+Evidence: `LO3-C-model-based-test-run.txt`.
+
+### References
+
+- Young and Pezzè, Chapter 5: Finite Models, especially slides 17–20.
+- Young and Pezzè, Chapter 14: Model-based Testing, especially slides 3–9.
+- Mini Aladdin: `TradeService.java`, `TradeController.java` and `docs/API.md`.
 
 ## References
 
