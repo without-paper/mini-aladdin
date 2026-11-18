@@ -7,6 +7,8 @@ import com.minialaddin.model.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -218,5 +220,170 @@ class PortfolioValuationCalculatorTest {
         assertAmount("1500.00", result.positions().get(0).costBasis());
         assertAmount("100.00", result.unrealisedPnl());
         assertAmount("300.00", result.totalPnl());
+    }
+
+    // =========================================================
+    // LO4 follow-up: boundary tests for the four surviving PIT
+    // ConditionalsBoundary mutants (calculator lines 42, 60 and
+    // 115). JaCoCo showed that no earlier test reached these
+    // boundaries, so a "<" / "<=" change went undetected.
+    // =========================================================
+
+    @ParameterizedTest(name = "MB-01 initial cash={0}, accepted={1}")
+    @CsvSource({
+            "-0.01, false",
+            "0.00, true",
+            "0.01, true"
+    })
+    void shouldRespectInitialCashBoundary(
+            String initialCash,
+            boolean accepted
+    ) {
+        BigDecimal cash = new BigDecimal(initialCash);
+
+        if (accepted) {
+            PortfolioValuationResponse result = calculator.calculate(
+                    1L,
+                    "Boundary Fund",
+                    cash,
+                    List.of(),
+                    Map.of()
+            );
+
+            assertAmount(initialCash, result.availableCash());
+            assertAmount(initialCash, result.totalValue());
+            assertAmount("0.00", result.totalPnl());
+            assertTrue(result.positions().isEmpty());
+
+        } else {
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> calculator.calculate(
+                            1L,
+                            "Boundary Fund",
+                            cash,
+                            List.of(),
+                            Map.of()
+                    )
+            );
+        }
+    }
+
+    @ParameterizedTest(name = "MB-02 initial cash={0}, BUY 10 x 200.00, accepted={1}")
+    @CsvSource({
+            "1999.99, false",
+            "2000.00, true",
+            "2000.01, true"
+    })
+    void shouldRespectHistoricalCashBoundary(
+            String initialCash,
+            boolean accepted
+    ) {
+        BigDecimal cash = new BigDecimal(initialCash);
+
+        List<Trade> trades = List.of(
+                trade("AAPL", TradeSide.BUY, "10", "200.00")
+        );
+
+        Map<String, MarketPrice> prices = Map.of(
+                "AAPL", quote("AAPL", "200.00")
+        );
+
+        if (accepted) {
+            PortfolioValuationResponse result = calculator.calculate(
+                    1L,
+                    "Boundary Fund",
+                    cash,
+                    trades,
+                    prices
+            );
+
+            // Spending exactly the available cash leaves 0.00
+            BigDecimal expectedCash =
+                    cash.subtract(new BigDecimal("2000.00"));
+
+            assertAmount(
+                    expectedCash.toPlainString(),
+                    result.availableCash()
+            );
+            assertAmount("2000.00", result.marketValue());
+            assertAmount(initialCash, result.totalValue());
+            assertAmount("0.00", result.totalPnl());
+
+        } else {
+            IllegalStateException ex = assertThrows(
+                    IllegalStateException.class,
+                    () -> calculator.calculate(
+                            1L,
+                            "Boundary Fund",
+                            cash,
+                            trades,
+                            prices
+                    )
+            );
+
+            assertEquals("Negative historical cash", ex.getMessage());
+        }
+    }
+
+    @ParameterizedTest(name = "MB-03 historical BUY quantity={0}, price={1}, accepted={2}")
+    @CsvSource({
+            "0, 100.00, false",
+            "1, 100.00, true",
+            "10, 0.00, false",
+            "10, 0.01, true"
+    })
+    void shouldRespectHistoricalQuantityAndPriceBoundaries(
+            String quantity,
+            String price,
+            boolean accepted
+    ) {
+        BigDecimal initialCash = new BigDecimal("10000.00");
+
+        List<Trade> trades = List.of(
+                trade("AAPL", TradeSide.BUY, quantity, price)
+        );
+
+        // A quote is supplied so that, if the validity check were
+        // weakened, valuation would complete instead of failing
+        // for an unrelated reason (missing price).
+        Map<String, MarketPrice> prices = Map.of(
+                "AAPL", quote("AAPL", "100.00")
+        );
+
+        if (accepted) {
+            PortfolioValuationResponse result = calculator.calculate(
+                    1L,
+                    "Boundary Fund",
+                    initialCash,
+                    trades,
+                    prices
+            );
+
+            BigDecimal expectedCash = initialCash.subtract(
+                    new BigDecimal(quantity)
+                            .multiply(new BigDecimal(price))
+            );
+
+            assertAmount(
+                    expectedCash.toPlainString(),
+                    result.availableCash()
+            );
+            assertEquals(1, result.positions().size());
+
+        } else {
+            IllegalStateException ex = assertThrows(
+                    IllegalStateException.class,
+                    () -> calculator.calculate(
+                            1L,
+                            "Boundary Fund",
+                            initialCash,
+                            trades,
+                            prices
+                    )
+            );
+
+            assertEquals("Invalid trade in history", ex.getMessage());
+        }
     }
 }
