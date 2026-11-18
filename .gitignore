@@ -43,3 +43,5 @@ backups/
 
 # Local performance results
 performance/results/
+
+.Claude outputs/
