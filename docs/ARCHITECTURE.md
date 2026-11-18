@@ -104,7 +104,12 @@ POST trade
 
 `saveAndFlush()` is **not** a commit. The `TransactionalTradeMetrics` callback is designed to count committed executions, not merely persisted but later rolled-back operations. A row lock serialises conflicting operations on one portfolio, but reduces write concurrency for that portfolio. The full-history calculation is also a scaling concern.
 
-**Observed metrics defect:** The supplied source calls `tradeMetrics.recordReplayed()` just before returning a newly executed trade (`replayed=false`) and does not call it in the actual replay branch. It must be moved to the matching-replay branch; see [Engineering Review](ENGINEERING_REVIEW.md). Do not describe this counter as correct until fixed.
+**Historical replay-metrics defect (resolved):** An earlier version
+of `TradeService` incorrectly counted newly executed trades as
+replays while failing to count actual replays. This was corrected
+in commit `b66b0f5` by moving `recordReplayed()` to the matching
+replay branch. LO2 integration tests subsequently verified the
+metric increments against persisted trade records.
 
 ## Financial calculations
 

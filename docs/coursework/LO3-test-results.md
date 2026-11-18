@@ -63,7 +63,14 @@ PIT 1.30.2 was restricted to **one production class**, `PortfolioValuationCalcul
 
 All four surviving mutants came from boundary-operator mutations. Their exact locations and equivalence status have not yet been assessed; they are potential test-design gaps, **not confirmed production defects**. The PIT mutation score must not be described as project-wide because the experiment mutated one class.
 
-**Evidence:** [LO3-E-pitest-run.txt](LO3-E-pitest-run.txt). Local PIT HTML/XML reports contain the detailed mutation views but are not committed in the current `docs/coursework` listing.
+**Evidence:** [LO3-E PIT baseline log](LO3-E-pitest-run.txt).
+The detailed [PIT report](pit-reports/index.html) and
+[`mutations.xml`](pit-reports/mutations.xml) have been committed.
+
+The initial four surviving boundary mutants were subsequently
+killed by targeted tests, increasing mutation coverage from
+19/23 to 23/23 in the same calculator scope.
+See [LO4 follow-up](LO4-follow-up.md).
 
 ## 5. Findings and Defect Yield
 
