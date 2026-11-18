@@ -302,7 +302,7 @@ PIT 1.30.2, with the JUnit platform plugin, is configured to analyse `PortfolioV
 
 The initial mutation analysis is deliberately restricted to this component to keep the experiment manageable and support detailed examination of surviving mutants.
 
-PIT classified the generated mutations by outcome. Four conditional-boundary mutants survived; their exact source locations and possible equivalence have not yet been examined, so they are recorded as unresolved test-sensitivity findings.
+At the LO3-E baseline stage, PIT classified four conditional-boundary mutants as surviving. Their source locations and equivalence status had not yet been investigated. Subsequent targeted tests killed all four; see [LO4 follow-up](LO4-follow-up.md).
 
 ### 6.4 Adequacy Criteria
 
@@ -353,7 +353,7 @@ The contrast between line and branch coverage indicates that some conditions rem
 | `NullReturnValsMutator` | 3 | 3 | 0 |
 | **Total** | **23** | **19** | **4** |
 
-All four survivors were conditional-boundary mutations. This suggests weaker test sensitivity to certain strict-versus-inclusive comparisons, despite high line coverage; the individual changed lines and possible equivalent mutants have **not yet been classified**. No additional production defect was established by these mutation results. The missing PIT TestNG plugin warning is not a test-run failure: PIT executed JUnit Jupiter tests successfully, as evidenced by killed mutants.
+At the LO3-E baseline stage, all four survivors were conditional-boundary mutations, showing weak sensitivity to strict-versus-inclusive comparisons despite high line coverage. They were investigated and killed by targeted tests in the subsequent [LO4 follow-up](LO4-follow-up.md); they were not confirmed production defects. The PIT TestNG plugin warning did not invalidate this JUnit Jupiter run.
 
 **Evaluation:** These metrics describe different dimensions of adequacy. JaCoCo measures execution, while PIT measures how often the selected tests detected synthetic faults. The PIT sample comprises one production class and must not be presented as a project-wide mutation score. No new tests were added in LO3-E; the exercise established a structural and mutation baseline for further evaluation.
 
@@ -362,7 +362,7 @@ All four survivors were conditional-boundary mutations. This suggests weaker tes
 - [LO3-E-jacoco-test-run.txt](LO3-E-jacoco-test-run.txt) — 97 passing tests and JaCoCo report generation.
 - [LO3-E-jacoco.csv](LO3-E-jacoco.csv) — auditable class-level coverage counters.
 - [LO3-E-pitest-run.txt](LO3-E-pitest-run.txt) — PIT run, operator breakdown and mutation summary.
-- PIT HTML/XML reports were generated locally but are **not included** in the current `docs/coursework` directory. The report summary screenshot alone does not identify the four surviving mutations by source line.
+- [PIT HTML report](pit-reports/index.html) and [mutation XML](pit-reports/mutations.xml) — committed detailed follow-up results; see [LO4 follow-up](LO4-follow-up.md) for the 23/23 outcome.
 
 ## 7. System Performance Testing
 
