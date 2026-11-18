@@ -52,6 +52,8 @@ JaCoCo's 93.3% line coverage and 68.3% branch coverage demonstrate that high exe
 
 The testing process provides substantial evidence for the specified prototype behaviours: 97 passing regression tests, explicitly covered finite input/state models, a reproduced-and-fixed financial defect, measured structural/mutation adequacy and a passing local R7 experiment. Confidence is strongest for the scenarios with independent oracles and real PostgreSQL integration. Confidence is weaker for untested financial histories, uncommon branches, concurrent schedules and response-time tails outside the controlled local workload. The remaining gaps are identified and prioritised; a complete absence of defects cannot be inferred from these results.
 
+The main limitations differ between R3 and R7. Financial correctness depends on the completeness of selected trading histories and the strength of independent test oracles, whereas performance evaluation depends heavily on workload representativeness and environmental variation. Regression checks, coverage measurements, mutation analysis and latency statistics can be automated. Selecting meaningful financial scenarios, interpreting equivalent mutants and explaining performance outliers still require human judgement.
+
 ## Evidence
 
 - [LO1 requirements](LO1-requirements.md)

@@ -1,0 +1,11 @@
+Source: docs/coursework/r7-F1F66185-raw.csv
+Bootstrap: 10000 resamples, seed 20261117
+
+Group       n      P50      P95        95% CI for P95      P99       Max  >200ms  95% upper
+Run 1     100    50.74    57.76        [55.47, 59.43]    59.61     65.05       0     2.95%
+Run 2     100    50.83    52.98        [52.65, 55.19]    58.92     59.03       0     2.95%
+Run 3     100    49.52    52.42        [51.39, 52.70]    56.61   2064.90       1     4.66%
+Pooled    300    50.39    55.47        [54.32, 56.72]    59.43   2064.90       1     1.57%
+
+Notes: consecutive sequential requests are not fully independent,
+so the intervals describe this local benchmark envelope only.

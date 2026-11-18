@@ -26,6 +26,30 @@ RV-02 remains a measurement limitation because PowerShell `Start-Job` introduces
 
 These findings demonstrate that code inspection can identify defects and maintainability concerns beyond those detected by automated tests. RV-01 does not affect the independently executed R7 sequential performance experiment, and neither RV-02 nor RV-03 establishes a functional production defect.
 
+### 1.3 Follow-up Inspection: Trade Execution and Build (R1, R2, R5)
+
+LO4 identified concurrency and trade-history behaviour as areas that testing cannot exhaust. A second checklist inspection therefore targeted `TradeService.executeTrade`, the two other accounting implementations, `GlobalExceptionHandler` and `pom.xml`.
+
+| Checklist question | Applied to |
+|---|---|
+| C1 Is each business rule implemented in exactly one place? | Cash/position calculation |
+| C2 Is the work done while holding the pessimistic lock bounded? | `executeTrade` critical section |
+| C3 Is every validation reachable, and consistent with the API layer? | Service checks vs Bean Validation |
+| C4 Are failures mapped to the correct HTTP status class (client vs server)? | `GlobalExceptionHandler` |
+| C5 Is the build reproducible, with test-only code excluded from the artefact? | `pom.xml`, packaged JAR |
+| C6 Does instrumentation count what it claims to count? | `TradeMetrics` |
+
+| ID | Checklist | Finding | Severity and status |
+|---|---|---|---|
+| RV-04 | C1 | Cash and position accounting is implemented three times: the `TradeService` history loop (lines 226–263), `PortfolioCalculationService` and `PortfolioValuationCalculator`. Tests of one copy give no assurance about the others; the SELL-history gap found in the LO4 follow-up existed only in the `TradeService` copy. | Medium (correctness/maintainability). Proposal: a single ledger component used by all three. Open. |
+| RV-05 | C2 | `executeTrade` loads the portfolio's **entire** trade history while holding the `PESSIMISTIC_WRITE` row lock (lines 162–263). Work inside the critical section grows linearly with history, so trade latency and same-portfolio throughput degrade over time. R7 measures valuation only (100 trades), so this attribute is untested. | Medium (performance). Proposal: running balance/position projection, plus a trade-latency-versus-history benchmark. Open. |
+| RV-06 | C5 | `pom.xml` declares `org.testng:testng` with version `RELEASE` in **compile** scope. Maven warns that `RELEASE` is deprecated, resolution is not reproducible, and `testng-7.12.0.jar` is packaged in `BOOT-INF/lib` of the application JAR. No source file uses TestNG; it also causes the PIT "TestNG is on the classpath" warning. | Low–medium (build integrity). Fix: remove the dependency and rerun `clean verify`. Open. |
+| RV-07 | C3, C4 | (a) Thirteen `TradeService` validation branches duplicate Bean Validation and cannot be reached through the API (see [LO4 follow-up](LO4-follow-up.md)). (b) `GlobalExceptionHandler` maps every `IllegalArgumentException` to HTTP 400, but `PortfolioValuationCalculator` and `PortfolioCalculationService` throw it for corrupt **persisted** data (for example, negative initial cash). A server-side data fault would therefore be reported to the client as a bad request. | Low. Proposal: a dedicated invalid-request exception for client errors; keep the service checks as defence in depth, tested at unit level. Open. |
+
+**Earlier inspection (C6).** The pre-coursework [engineering review](../ENGINEERING_REVIEW.md) found that `TradeService` recorded the *replayed* metric on every new trade and never on an actual replay. The defect was in the instrumentation itself, not detected by any test, and fixed in commit `b66b0f5`. It motivated the LO2 check that compares counter increments with the persisted database state.
+
+**Evaluation.** The follow-up inspection found issues of a kind that additional test cases would not reveal: duplicated rules (RV-04), unbounded work under a lock (RV-05) and build integrity (RV-06). Each finding is linked to a requirement and proposes either a test (RV-05) or a design change.
+
 ## 2. CI Pipeline Design (LO5.2)
 
 The existing GitHub Actions workflow (`.github/workflows/ci.yml`) runs on pushes to `master` and `feature/**`, pull requests targeting `master`, and manual dispatch.

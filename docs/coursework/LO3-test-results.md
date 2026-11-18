@@ -10,6 +10,7 @@
 | LO3-C | Model-based idempotency state-machine testing | 95 | 0 | 0 | 0 |
 | LO3-D, post-fix | Regression and PostgreSQL API integration tests | 97 | 0 | 0 | 0 |
 | LO3-E | JaCoCo-instrumented full regression verification | 97 | 0 | 0 | 0 |
+| LO4 follow-up | SELL-history, boundary, invariant and HTTP 500 contract tests ([details](LO4-follow-up.md)) | 121 | 0 | 0 | 0 |
 
 LO3-D also produced **two intentionally recorded pre-fix failures**: a unit reconciliation test (`expected: <0> but was: <-1>`) and an API integration test (HTTP 500 instead of 200). These are the evidence of defect D-02, not successful runs. Both tests passed after the production fix, and the complete post-fix regression suite passed.
 
@@ -89,3 +90,5 @@ All four surviving mutants came from boundary-operator mutations. Their exact lo
 - [LO3-F per-run statistics](r7-F1F66185-summary.csv)
 - [LO3-F environment metadata](r7-F1F66185-environment.json)
 - [Detailed LO3 test design](LO3-test-design.md)
+- [LO4 follow-up: branch classification, new tests, results](LO4-follow-up.md)
+- [R7 statistical analysis](LO4-R7-statistics.txt) (script: `performance/r7_statistics.py`)

@@ -20,6 +20,8 @@ The project is an **educational prototype, not production-ready trading infrastr
 
 ## Release blocker: incorrect replay counter
 
+> **Status (17 Nov 2026): resolved** in commit `b66b0f5`. The replay metric is now recorded only on the matching-replay branch, and the LO2 concurrency test compares counter increments with the persisted trades. The checklist below is the historical v1.0.0 release gate.
+
 The supplied `TradeService.java` has an observable **business-metrics bug**:
 
 - The matching-idempotent-replay branch (`existingTrade.isPresent()` with matching fingerprint) returns `TradeExecutionResult(..., true)` **without calling** `tradeMetrics.recordReplayed()`.
