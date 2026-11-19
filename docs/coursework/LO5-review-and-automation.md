@@ -84,6 +84,30 @@ These executions demonstrate that the pipeline detects test regressions and gate
 
 The workflow does not currently perform production deployment, security testing, performance acceptance testing or mandatory mutation testing.
 
+### 4.1 Post-build Deployment Smoke Testing
+
+The CI pipeline was extended with an isolated deployment smoke test. After Maven verification, Docker Buildx constructs and loads the application image into the GitHub Actions runner. Docker Compose then starts the packaged application against a fresh PostgreSQL 17 instance.
+
+The smoke test verifies application health, portfolio creation, BUY execution, idempotent replay, persisted trade count and financial reconciliation through the real HTTP API.
+
+An initial CI run failed because the image was built but not loaded into the local Docker Engine. The workflow was corrected by enabling `load: true` in `docker/build-push-action`. A subsequent run successfully executed all 121 Java tests and the complete deployment smoke test.
+
+**Evidence:** [Failed CI run](https://github.com/without-paper/mini-aladdin/actions/runs/44584149919) and [successful CI run](https://github.com/without-paper/mini-aladdin/actions/runs/44586139842).
+
+This additional verification checks that the packaged application can start and perform critical customer operations, beyond merely passing unit tests or building an image.
+
+**Limitation:** The workflow validates an isolated candidate release; it does not deploy to production, guarantee continuous availability or implement automatic rollback. Failed verification blocks the candidate pipeline without affecting an existing deployed instance.
+
+### 4.1 Deployment Verification and Recovery
+
+The CI pipeline was extended with a post-build smoke test. It deploys the actual Docker image against a clean PostgreSQL instance and verifies application health, portfolio creation, trade execution, idempotent replay and financial reconciliation.
+
+An initial integration failure revealed that the Docker image was not loaded into the runner. After correcting the Buildx configuration, the [subsequent CI execution](https://github.com/without-paper/mini-aladdin/actions/runs/44586139842) passed all 121 Java tests and the complete deployment smoke test.
+
+A separate [database failure and recovery experiment](LO5-recovery-experiment.md) examined health detection and the resumption of business operations following a controlled database interruption.
+
+These checks improve confidence in deployability and recoverability. They do not demonstrate production zero-downtime availability, automatic rollback or fault tolerance under concurrent customer traffic.
+
 ## 5. Limitations and Follow-up
 
 The code inspection was limited to selected components and does not constitute a comprehensive security, performance or financial audit.
