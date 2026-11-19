@@ -49,7 +49,7 @@ Reproduce with `python performance/r7_statistics.py docs/coursework/r7-F1F66185-
 * Every interval is far below 200 ms, so the R7 conclusion is not sensitive to sampling error.
 * The Run 1 and Run 3 intervals do not overlap: variation **between** runs is larger than sampling error **within** a run. This quantifies why independent sessions are needed before generalising.
 * Within this envelope, the probability that a request exceeds 200 ms is below about 1.6% (one-sided 95%). Consecutive sequential requests are not fully independent, so this is an indicative bound only.
-* The outlier (Run 3, iteration 27) is about 2,015 ms above a typical request. An almost exact two-second stall suggests a client- or network-side timeout/retry rather than server work. `CorrelationIdFilter` already logs server-side `durationMs` for each request; recording the `X-Correlation-ID` response header in the benchmark would allow client and server timings to be joined and the outlier attributed. This is an instrumentation improvement (LO2.4) rather than a further test.
+* The outlier (Run 3, iteration 27) is about 2,015 ms above a typical request. Its roughly two-second duration alone cannot establish whether client/network or server-side work caused it. The updated [`benchmark-valuation-r7.ps1`](../../performance/benchmark-valuation-r7.ps1) records `X-Correlation-ID` on successful measurements (or null if a request fails before a response is available) so that future client timings can be matched to the server-side `durationMs` logs. The original 300-request dataset lacks those IDs, and no new correlation-ID benchmark results have yet been committed; therefore the historical outlier remains unexplained.
 
 ## 5. Results after the actions
 
@@ -67,4 +67,4 @@ Evidence: [121-test `mvnw clean verify` run](LO4-follow-up-test-run.txt#L4995) (
 
 **Which tests killed the former survivors** (from `mutations.xml`): line 42, MB-01 (initial cash 0.00); line 60, MB-03 (historical quantity 0, and historical price 0.00); line 115, MB-02 (initial cash exactly 2000.00, so cash ends at 0.00). Line 78 was already killed by `shouldPreserveRealisedPnlAfterPositionClosed`. Each survivor fell to a single boundary case, which confirms that all four were missing tests, not equivalent mutants.
 
-**Conclusion.** The P0 branch and mutation targets set in §2 are now met, and every uncovered branch in the P0 classes is classified. The R7 limitations in §4 remain open: independent sessions, correlation-ID capture and concurrent load (LO4 §5).
+**Conclusion.** The P0 branch and mutation targets set in §2 are now met, and every uncovered branch in the P0 classes is classified. The remaining R7 work includes testing the new correlation-ID capture against actual server logs, repeating independent sessions and introducing controlled concurrent load (LO4 §5).

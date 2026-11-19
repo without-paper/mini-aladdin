@@ -56,7 +56,7 @@ The existing GitHub Actions workflow (`.github/workflows/ci.yml`) runs on pushes
 
 Its first job checks out the source, configures Temurin Java 21, and executes `./mvnw -B -ntp clean verify`. This runs the automated Java test suite, including PostgreSQL Testcontainers integration tests.
 
-The second job builds the Docker image and depends on successful completion of the test job. This ordering prevents image construction when tests fail.
+The second job depends on Maven verification, builds and loads the Docker image, and verifies that it is present in the runner. It starts a fresh PostgreSQL 17 database and the packaged application using an isolated Docker Compose project. The HTTP smoke script then checks health, portfolio creation, BUY execution and idempotent replay, persisted trade count and financial reconciliation. Failure blocks the candidate CI run; logs are captured on failure and the temporary containers are always cleaned up. This is a pre-release gate, not an automated production deployment.
 
 The workflow uses Maven dependency caching, read-only repository permissions, concurrency cancellation and test-report artifact upload.
 
@@ -64,7 +64,7 @@ The workflow uses Maven dependency caching, read-only repository permissions, co
 
 Automated checks include JUnit unit tests, parameterised boundary and combinatorial tests, MockMvc API tests, PostgreSQL integration tests, regression tests and JaCoCo coverage collection.
 
-The current 121-test suite provides automated regression feedback across the selected requirements, expanded from the earlier 97-test baseline through LO4 follow-up testing. JaCoCo reports execution coverage during Maven verification.
+The current 121-test suite provides automated regression feedback across the selected requirements, expanded from the earlier 97-test baseline through LO4 follow-up testing. JaCoCo reports execution coverage during Maven verification. Separately, the automated deployment smoke test checks customer-critical operations through the HTTP interface of the built container, rather than testing only inside the JVM.
 
 PIT mutation testing and the R7 performance benchmark are separate experiments; they are not currently mandatory CI jobs.
 
@@ -84,29 +84,13 @@ These executions demonstrate that the pipeline detects test regressions and gate
 
 The workflow does not currently perform production deployment, security testing, performance acceptance testing or mandatory mutation testing.
 
-### 4.1 Post-build Deployment Smoke Testing
+### 4.1 Post-build Smoke Gate and Controlled Recovery
 
-The CI pipeline was extended with an isolated deployment smoke test. After Maven verification, Docker Buildx constructs and loads the application image into the GitHub Actions runner. Docker Compose then starts the packaged application against a fresh PostgreSQL 17 instance.
+An initial integration attempt failed because Buildx had produced the Docker image without loading it into the runner ([failed CI run](https://github.com/without-paper/mini-aladdin/actions/runs/44584149919)). Moving `load: true` to the build-push action fixed this pipeline integration error. The [successful smoke CI run](https://github.com/without-paper/mini-aladdin/actions/runs/44586139842) passed all 121 Java tests and the end-to-end checks. A [later successful run](https://github.com/without-paper/mini-aladdin/actions/runs/44589827668) confirmed the gate remained operational.
 
-The smoke test verifies application health, portfolio creation, BUY execution, idempotent replay, persisted trade count and financial reconciliation through the real HTTP API.
+The deployed-container smoke check exercises the real HTTP endpoint and a fresh database, which a passing unit suite or image build alone does not establish. A failed candidate CI run does not stop an existing deployment because this workflow performs no production deployment.
 
-An initial CI run failed because the image was built but not loaded into the local Docker Engine. The workflow was corrected by enabling `load: true` in `docker/build-push-action`. A subsequent run successfully executed all 121 Java tests and the complete deployment smoke test.
-
-**Evidence:** [Failed CI run](https://github.com/without-paper/mini-aladdin/actions/runs/44584149919) and [successful CI run](https://github.com/without-paper/mini-aladdin/actions/runs/44586139842).
-
-This additional verification checks that the packaged application can start and perform critical customer operations, beyond merely passing unit tests or building an image.
-
-**Limitation:** The workflow validates an isolated candidate release; it does not deploy to production, guarantee continuous availability or implement automatic rollback. Failed verification blocks the candidate pipeline without affecting an existing deployed instance.
-
-### 4.1 Deployment Verification and Recovery
-
-The CI pipeline was extended with a post-build smoke test. It deploys the actual Docker image against a clean PostgreSQL instance and verifies application health, portfolio creation, trade execution, idempotent replay and financial reconciliation.
-
-An initial integration failure revealed that the Docker image was not loaded into the runner. After correcting the Buildx configuration, the [subsequent CI execution](https://github.com/without-paper/mini-aladdin/actions/runs/44586139842) passed all 121 Java tests and the complete deployment smoke test.
-
-A separate [database failure and recovery experiment](LO5-recovery-experiment.md) examined health detection and the resumption of business operations following a controlled database interruption.
-
-These checks improve confidence in deployability and recoverability. They do not demonstrate production zero-downtime availability, automatic rollback or fault tolerance under concurrent customer traffic.
+A separate [controlled database recovery experiment](LO5-recovery-experiment.md) used an isolated Docker Compose project. The operator reported that health detection and critical business operations recovered after stopping and restarting PostgreSQL. Raw terminal responses and recovery logs have not been committed, so that evidence is weaker than the independently inspectable CI logs. Neither experiment demonstrates zero-downtime availability, automated rollback or resilience under production traffic.
 
 ## 5. Limitations and Follow-up
 
@@ -116,8 +100,8 @@ RV-01 was corrected and verified through a targeted execution. However, this ver
 
 RV-02 remains an inherent limitation of the current PowerShell benchmarking approach, while RV-03 is an identified maintainability improvement that has not yet been implemented.
 
-The CI pipeline provides automated regression feedback and prevents Docker image construction when Maven tests fail. However, it does not guarantee the absence of undetected defects. Mutation testing, performance acceptance testing and security testing are not currently mandatory CI stages.
+The CI pipeline prevents Docker image construction when Maven tests fail and fails candidate validation when a deployment smoke check fails. These gates cannot guarantee the absence of undetected defects or ongoing production availability. Mutation testing, performance acceptance testing and security testing are not currently mandatory CI stages.
 
-Further improvements could include targeted static analysis, stronger review checklists, preservation of JaCoCo reports as CI artifacts and additional tests addressing uncovered branches and surviving mutants.
+Further improvements should prioritize validating client/server correlation-ID timing, measuring trade latency as history grows (RV-05), and retaining reproducible failure/recovery evidence. These risk-based improvements are more useful than maximizing aggregate coverage percentages.
 
 **References:** Software Testing Tutorial LO5; Young and Pezzè Chapters 18, 23 and 24; project source code and GitHub Actions execution history.

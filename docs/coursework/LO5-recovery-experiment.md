@@ -31,7 +31,7 @@ The experiment was conducted in an isolated local environment and did not affect
 
 ## Evidence
 
-- `compose.smoke.yaml`
-- `scripts/ci-smoke.sh`
-- Local fault-injection execution log, if retained
+- [Isolated Compose environment](../../compose.smoke.yaml)
+- [HTTP smoke test script](../../scripts/ci-smoke.sh)
+- Local fault-injection results: operator-reported; original HTTP responses and container logs are not currently committed
 - [Successful post-build CI smoke test](https://github.com/without-paper/mini-aladdin/actions/runs/44586139842)

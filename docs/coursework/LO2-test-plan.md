@@ -54,6 +54,12 @@ LO3-E established a JaCoCo baseline of **574/615 covered lines (93.3%)** and **1
 
 The R7 performance experiment was completed using 100 historical trades, 10 open positions and three runs of 100 sequential measurements. All 300 requests succeeded, and the measured P95 values were 57.762 ms, 52.976 ms and 52.416 ms, satisfying the proposed 200 ms threshold. One 2064.904 ms outlier was observed in Run 3 and remains unexplained. 
 
+## 5. Subsequent Risk-based Revision (19 November 2026)
+
+The plan was revised to prioritise what a customer needs from a deployable service rather than an arbitrary project-wide coverage rate. The CI pipeline now runs an isolated deployment smoke test after the Maven and Docker build gates; acceptance requires a healthy Spring Boot process, successful portfolio creation, correct BUY/replay persistence, and valuation reconciliation using a fresh PostgreSQL database ([CI evidence](https://github.com/without-paper/mini-aladdin/actions/runs/44589827668); [LO5 review](LO5-review-and-automation.md)). This checks packaging and application/database integration beyond the 121-test Java suite.
+
+A separate local database stop/restart exercise was reported as passing ([recovery record](LO5-recovery-experiment.md)), but its original terminal output was not committed. For R7, the HTTP measurement script now captures response correlation IDs for future analysis; this change must be evaluated with a new run before claiming the 2.06-second historical outlier has been explained. The accepted risks still include single-instance availability, production-like concurrency/load and unobserved failure schedules. None requires a claim of perfect coverage.
+
 ## References
 
 - Software Testing, [Tutorial LO2 and Sample Test Planning Document](https://opencourse.inf.ed.ac.uk/st/week-4-5).
