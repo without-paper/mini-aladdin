@@ -60,6 +60,8 @@ The plan was revised to prioritise what a customer needs from a deployable servi
 
 A separate local database stop/restart exercise was reported as passing ([recovery record](LO5-recovery-experiment.md)), but its original terminal output was not committed. For R7, the HTTP measurement script now captures response correlation IDs for future analysis; this change must be evaluated with a new run before claiming the 2.06-second historical outlier has been explained. The accepted risks still include single-instance availability, production-like concurrency/load and unobserved failure schedules. None requires a claim of perfect coverage.
 
+A subsequent five-request validation run confirmed that the updated R7 benchmark captures a distinct, non-empty X-Correlation-ID for every successful HTTP response. All five requests returned HTTP 200, with P95 = 64.35 ms. This small experiment validates client-side instrumentation, rather than replacing the original 300-request performance assessment. Server-side log correlation and the historical latency outlier remain unverified. See the raw data and summary.
+
 ## References
 
 - Software Testing, [Tutorial LO2 and Sample Test Planning Document](https://opencourse.inf.ed.ac.uk/st/week-4-5).
