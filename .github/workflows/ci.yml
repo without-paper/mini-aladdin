@@ -83,8 +83,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
-        with:
-          load: true
 
       - name: Build Docker image
         uses: docker/build-push-action@v7
@@ -92,10 +90,14 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false
+          load: true
           tags: mini-aladdin:ci
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Verify image is available locally
+        run: docker image inspect mini-aladdin:ci
 
       - name: Start isolated CI environment
         run: |
