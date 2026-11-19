@@ -1,0 +1,32 @@
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: smoke_db
+      POSTGRES_USER: smoke_user
+      POSTGRES_PASSWORD: smoke_password_ci_only
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U smoke_user -d smoke_db
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    image: mini-aladdin:ci
+    pull_policy: never
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/smoke_db
+      SPRING_DATASOURCE_USERNAME: smoke_user
+      SPRING_DATASOURCE_PASSWORD: smoke_password_ci_only
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+
+    ports:
+      - "127.0.0.1:18080:8080"
+
+    depends_on:
+      db:
+        condition: service_healthy

@@ -83,6 +83,8 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
+        with:
+          load: true
 
       - name: Build Docker image
         uses: docker/build-push-action@v7
@@ -94,3 +96,30 @@ jobs:
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Start isolated CI environment
+        run: |
+          docker compose \
+            -p mini-aladdin-smoke \
+            -f compose.smoke.yaml \
+            up -d --no-build
+
+      - name: Smoke test deployed application
+        run: bash scripts/ci-smoke.sh
+
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          docker compose \
+            -p mini-aladdin-smoke \
+            -f compose.smoke.yaml \
+            logs --no-color
+
+      - name: Clean up smoke environment
+        if: always()
+        run: |
+          docker compose \
+            -p mini-aladdin-smoke \
+            -f compose.smoke.yaml \
+            down --volumes --remove-orphans
+
