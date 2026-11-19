@@ -143,16 +143,23 @@ try {
                     Run = $run; Iteration = $iteration; Status = "ERROR"
                     DurationMs = [math]::Round($watch.Elapsed.TotalMilliseconds, 3)
                     TimestampUtc = [DateTime]::UtcNow.ToString('o')
+                    CorrelationId = $null
                 })
                 throw "Measured request $iteration of run $run failed: $_"
             }
             $duration = $watch.Elapsed.TotalMilliseconds
             $raw.Add([PSCustomObject]@{
-                Run = $run; Iteration = $iteration; Status = $status
+                Run = $run
+                Iteration = $iteration
+                Status = $status
                 DurationMs = [math]::Round($duration, 3)
                 TimestampUtc = [DateTime]::UtcNow.ToString('o')
+                CorrelationId = [string]$response.Headers["X-Correlation-ID"]
             })
-            if ($status -ne 200) { throw "Measured request returned HTTP $status." }
+
+            if ($status -ne 200) {
+                throw "Measured request returned HTTP $status."
+            }
             $measured.Add($duration)
         }
 
