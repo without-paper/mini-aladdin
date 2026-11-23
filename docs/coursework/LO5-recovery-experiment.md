@@ -35,3 +35,7 @@ The experiment was conducted in an isolated local environment and did not affect
 - [HTTP smoke test script](../../scripts/ci-smoke.sh)
 - Local fault-injection results: operator-reported; original HTTP responses and container logs are not currently committed
 - [Successful post-build CI smoke test](https://github.com/without-paper/mini-aladdin/actions/runs/44586139842)
+
+## Update: Automated Recovery Check (23 November 2026)
+
+The stop/restart is now automated as [`scripts/ci-recovery.sh`](../../scripts/ci-recovery.sh), which CI runs after the smoke test on every push ([LO5 §4.2](LO5-review-and-automation.md#42-automated-database-failure-and-recovery-check)). It uses the CI Compose project and adds checks the manual run did not make: the response to a trade during the outage, that nothing was stored, and that a retry with the same Idempotency-Key executes exactly once. Its output is in the log of [CI run #44](https://github.com/without-paper/mini-aladdin/actions/runs/45266517282). The operator-reported results above are kept as recorded and are not reclassified as CI evidence.

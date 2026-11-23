@@ -61,12 +61,12 @@ Remove the later call to `tradeMetrics.recordReplayed()` from the **new-trade** 
 - Tested recovery point/recovery time objectives, backup restoration drills and data retention controls.
 - Broader financial accounting: fees, taxes, settlement, dividends, corporate actions, FX and asset-specific conventions.
 - Exchange/broker connectivity, real-time validated market data and compliance controls.
-- Formal load, stress, failure-injection and disaster-recovery tests.
+- Formal load, stress and disaster-recovery tests, and failure injection beyond the single database stop/restart check in CI (`scripts/ci-recovery.sh`).
 - First-time installation without a pre-existing PostgreSQL Docker volume.
 
 ## Acceptance tests for v1.0.0
 
-> **Status (23 Nov 2026):** no `v1.0.0` release has been made, and the coursework branch is not a release. The ticked items are done; the others remain the gate for a future release. On the coursework branch the full test suite (135 tests, including Testcontainers) and both CI jobs pass ([CI run #42](https://github.com/without-paper/mini-aladdin/actions/runs/45209278587)), but not on a tagged release commit.
+> **Status (23 Nov 2026):** no `v1.0.0` release has been made, and the coursework branch is not a release. The ticked items are done; the others remain the gate for a future release. On the coursework branch the full test suite (137 tests, including Testcontainers) and both CI jobs, including the database failure-and-recovery check, pass ([CI run #44](https://github.com/without-paper/mini-aladdin/actions/runs/45266517282)), but not on a tagged release commit.
 
 - [x] Fix and test the replay-counter defect identified above (commit `b66b0f5`; covered by `TradeMetricsTest` and the counter checks in `TradeIdempotencyConcurrencyIntegrationTest`).
 - [x] Confirm actual `pom.xml` project version and decide whether to set `1.0.0` before tagging (`pom.xml` is already `1.0.0`).

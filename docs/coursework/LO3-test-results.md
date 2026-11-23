@@ -12,6 +12,7 @@
 | LO3-E | JaCoCo-instrumented full regression verification | 97 | 0 | 0 | 0 |
 | LO4 follow-up | SELL-history, boundary, invariant and HTTP 500 contract tests ([details](LO4-follow-up.md)) | 121 | 0 | 0 | 0 |
 | Test-code review | Lock-controlled concurrency, API stale-quote, log-correlation, trade-history and price-boundary tests; existing oracles strengthened ([details](LO4-follow-up.md#6-second-follow-up-test-code-review)) | 135 | 0 | 0 | 0 |
+| Requirement-driven review | Eight repeated tests removed; partly valid request, input-length boundary, mixed fresh/stale and closed-position valuation, and full BUY–SELL round-trip tests added ([details](LO4-follow-up.md#8-third-follow-up-requirement-driven-test-review-137-tests)) | 137 | 0 | 0 | 0 |
 
 LO3-D also produced **two intentionally recorded pre-fix failures**: a unit reconciliation test (`expected: <0> but was: <-1>`) and an API integration test (HTTP 500 instead of 200). These are the evidence of defect D-02, not successful runs. Both tests passed after the production fix, and the complete post-fix regression suite passed.
 
@@ -23,6 +24,7 @@ LO3-D also produced **two intentionally recorded pre-fix failures**: a unit reco
 | Boundary coverage | Twelve specified R1/R4 cases | 12/12 | 100% |
 | Normal-domain combination coverage | Twelve feasible R2 test frames | 12/12 | 100% |
 | Error-choice execution | Invalid idempotency key | 1/1 | 100% |
+| Input-length boundary coverage | Six R2/R6 cases (BV-K1–BV-K4, BV-S1–BV-S2; [LO4 follow-up §8](LO4-follow-up.md#8-third-follow-up-requirement-driven-test-review-137-tests)) | 6/6 | 100% |
 | Finite-state-machine state coverage | U and B states | 2/2 | 100% |
 | Finite-state-machine transition coverage | T1–T4 | 4/4 | 100% |
 
@@ -46,7 +48,7 @@ The unexecuted conditions, particularly in `TradeService`, limit the assurance p
 
 **Evidence:** [LO3-E-jacoco-test-run.txt](LO3-E-jacoco-test-run.txt), [LO3-E-jacoco.csv](LO3-E-jacoco.csv).
 
-**Later stages.** The figures above remain the LO3-E baseline. The same JaCoCo configuration later measured 587/615 lines (95.4%) and 133/180 branches (73.9%) after the LO4 follow-up (121 tests; [LO4 follow-up §5](LO4-follow-up.md#5-results-after-the-actions)), and 591/615 lines (96.1%) and 136/180 branches (75.6%) after the test-code review (135 tests; [LO4 follow-up §7](LO4-follow-up.md#7-updated-structural-coverage-135-test-suite)).
+**Later stages.** The figures above remain the LO3-E baseline. The same JaCoCo configuration later measured 587/615 lines (95.4%) and 133/180 branches (73.9%) after the LO4 follow-up (121 tests; [LO4 follow-up §5](LO4-follow-up.md#5-results-after-the-actions)), and 591/615 lines (96.1%) and 136/180 branches (75.6%) after the test-code review (135 tests; [LO4 follow-up §7](LO4-follow-up.md#7-updated-structural-coverage-135-test-suite)). Both figures were unchanged after the requirement-driven review (137 tests; [LO4 follow-up §8](LO4-follow-up.md#8-third-follow-up-requirement-driven-test-review-137-tests)).
 
 ## 4. Fault-based / Mutation Testing (LO3-E)
 
@@ -74,7 +76,7 @@ killed by targeted tests, increasing mutation coverage from
 See [LO4 follow-up](LO4-follow-up.md). The committed
 [PIT report](pit-reports/index.html) and
 [`mutations.xml`](pit-reports/mutations.xml) are from this later
-23/23 run. PIT was not re-run for the 135-test stage; the reasons are
+23/23 run. PIT was not re-run for the 135- and 137-test stages; the reasons are
 given in [LO4 follow-up §6](LO4-follow-up.md#6-second-follow-up-test-code-review).
 
 ## 5. Findings and Defect Yield
@@ -87,21 +89,21 @@ given in [LO4 follow-up §6](LO4-follow-up.md#6-second-follow-up-test-code-revie
 
 ## 6. Requirement Traceability (JUnit Tags)
 
-Every test class carries one `@Tag` per requirement it checks, and every `@SpringBootTest` class also carries `integration` (these start PostgreSQL through Testcontainers). Parameterised cases are named after their design IDs (FT-01 to FT-12, CP-1 to CP-12 and CP-E1, MP-B1 to MP-B3), so the Surefire reports can be traced back to [LO3-test-design.md](LO3-test-design.md).
+Every test class carries one `@Tag` per requirement it checks, and every `@SpringBootTest` class also carries `integration` (these start PostgreSQL through Testcontainers). Parameterised cases are named after their design IDs (FT-01 to FT-12, CP-1 to CP-12 and CP-E1, MP-B1 to MP-B3, BV-K1 to BV-K4 and BV-S1 to BV-S2), and the integration scenarios carry IDs in their display names (for example R4-V8, R6-E1, R1-F1), so the Surefire reports can be traced back to [LO3-test-design.md](LO3-test-design.md).
 
 | Tag | Tests | Test classes |
 |---|---:|---|
-| R1 | 31 | `TradeServiceTest`, `TradeServiceHistoryTest`, `PortfolioCalculationServiceTest`, `PortfolioReportControllerTest`, `TradeControllerTest`, `TradeConcurrentOverspendIntegrationTest` |
-| R2 | 15 | `TradeIdempotencyCombinatorialTest`, `TradeIdempotencyStateMachineTest`, `TradeIdempotencyConcurrencyIntegrationTest` |
-| R3 | 32 | `PortfolioValuationCalculatorTest`, `PortfolioValuationRegressionTest`, `PortfolioValuationRoundingRegressionTest`, `PortfolioValuationServiceInvariantTest`, `PortfolioValuationRoundingIntegrationTest`, `PortfolioValuationControllerTest`, `PortfolioValuationConsistencyIntegrationTest` |
-| R4 | 30 | `MarketPriceFreshnessPolicyTest`, `MarketPriceServiceTest`, `MarketPriceControllerTest`, `PortfolioValuationControllerTest` |
+| R1 | 29 | `TradeServiceTest`, `TradeServiceHistoryTest`, `PortfolioCalculationServiceTest`, `PortfolioReportControllerTest`, `TradeControllerTest`, `TradeConcurrentOverspendIntegrationTest`, `TradeLifecycleIntegrationTest` |
+| R2 | 22 | `TradeIdempotencyCombinatorialTest`, `TradeIdempotencyStateMachineTest`, `TradeIdempotencyConcurrencyIntegrationTest`, `TradeRequestEdgeCaseIntegrationTest` |
+| R3 | 35 | `PortfolioValuationCalculatorTest`, `PortfolioValuationRegressionTest`, `PortfolioValuationRoundingRegressionTest`, `PortfolioValuationServiceInvariantTest`, `PortfolioValuationRoundingIntegrationTest`, `PortfolioValuationControllerTest`, `PortfolioValuationConsistencyIntegrationTest`, `TradeLifecycleIntegrationTest` |
+| R4 | 28 | `MarketPriceFreshnessPolicyTest`, `MarketPriceServiceTest`, `MarketPriceControllerTest`, `PortfolioValuationControllerTest`, `TradeLifecycleIntegrationTest` |
 | R5 | 5 | `TradeRollbackIntegrationTest`, `TradeIdempotencyConcurrencyIntegrationTest`, `TradeConcurrentOverspendIntegrationTest`, `PortfolioSnapshotIsolationIntegrationTest`, `PortfolioValuationConsistencyIntegrationTest` |
-| R6 | 29 | `PortfolioServiceTest`, `PortfolioControllerTest`, `GlobalExceptionHandlerIntegrationTest`, `UnexpectedErrorProblemDetailIntegrationTest`, `MarketPriceControllerTest`, `PortfolioReportControllerTest`, `PortfolioValuationControllerTest`, `TradeControllerTest` |
+| R6 | 38 | `PortfolioServiceTest`, `PortfolioControllerTest`, `GlobalExceptionHandlerIntegrationTest`, `UnexpectedErrorProblemDetailIntegrationTest`, `MarketPriceControllerTest`, `PortfolioReportControllerTest`, `PortfolioValuationControllerTest`, `TradeControllerTest`, `TradeRequestEdgeCaseIntegrationTest` |
 | R7 | — | Not a JUnit test: measured by `performance/benchmark-valuation-r7.ps1` (LO3-F evidence in §7) |
 | R8 | 19 | `TradeMetricsTest`, `TransactionalTradeMetricsTest`, `TransactionalTradeMetricsIntegrationTest`, `CorrelationIdFilterTest`, `CorrelationIdIntegrationTest`, `CorrelationIdLoggingIntegrationTest`, `UnexpectedErrorProblemDetailIntegrationTest`, `TradeRollbackIntegrationTest` |
-| integration | 50 | All 19 `@SpringBootTest` classes |
+| integration | 60 | All 21 `@SpringBootTest` classes |
 
-Counts overlap because a class can check more than one requirement. The 85 tests without the `integration` tag run without Docker.
+Counts overlap because a class can check more than one requirement. The 77 tests without the `integration` tag run without Docker. R5 and R6 failure handling is also checked outside JUnit by the CI database-recovery script ([LO4 follow-up §8](LO4-follow-up.md#8-third-follow-up-requirement-driven-test-review-137-tests)).
 
 ```text
 ./mvnw test -Dgroups=R5                    # one requirement
@@ -131,4 +133,7 @@ Counts overlap because a class can check more than one requirement. The 85 tests
 - [LO4 follow-up: 121-test run](LO4-follow-up-test-run.txt)
 - [Test-code review: 135-test run](LO4-follow-up-2-test-run.txt)
 - [Test-code review: 135-test JaCoCo CSV](LO4-follow-up-2-jacoco.csv) and [XML](LO4-follow-up-2-jacoco.xml)
+- [Requirement-driven review: 137-test run](LO4-follow-up-3-test-run.txt#L7391)
+- [Requirement-driven review: 137-test JaCoCo CSV](LO4-follow-up-3-jacoco.csv) and [XML](LO4-follow-up-3-jacoco.xml)
+- CI run on the 137-test suite with the database-recovery check: [#44](https://github.com/without-paper/mini-aladdin/actions/runs/45266517282) (commit `910bffd`)
 - CI runs on the 135-test suite: [#41](https://github.com/without-paper/mini-aladdin/actions/runs/45089342461) (commit `4ab1008`, first run) and [#42](https://github.com/without-paper/mini-aladdin/actions/runs/45209278587) (commit `8b29ea8`, final code and tests)

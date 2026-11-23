@@ -1,6 +1,6 @@
 # LO4 Follow-up — Acting on Coverage, Mutation and Performance Evidence
 
-[LO4 evaluation](LO4-evaluation.md) identified uncovered branches, four unexplained PIT survivors and an unexplained R7 latency outlier, but left them as proposals. This document records the follow-up: the missed branches are classified (LO4.3), targets are set for the P0 classes (LO4.2), new tests close the genuine gaps (LO4.4), and the R7 data is analysed statistically. Sections 6 and 7 record a later review of the test code itself and the resulting 135-test coverage.
+[LO4 evaluation](LO4-evaluation.md) identified uncovered branches, four unexplained PIT survivors and an unexplained R7 latency outlier, but left them as proposals. This document records the follow-up: the missed branches are classified (LO4.3), targets are set for the P0 classes (LO4.2), new tests close the genuine gaps (LO4.4), and the R7 data is analysed statistically. Sections 6 and 7 record a later review of the test code itself and the resulting 135-test coverage. Section 8 records a third review, which removed repeated tests and added requirement-driven edge-case, business-flow and failure-recovery tests (137 tests).
 
 ## 1. Classification of the 57 missed branches (JaCoCo, 97-test suite)
 
@@ -111,3 +111,49 @@ The additional tests primarily strengthen test oracles, concurrency control and 
 From 121 to 135 tests, coverage rose by only 4 lines and 3 branches. The 97-test and 135-test CSVs differ in seven classes. Four of them account for the whole 121-stage gain of 13 lines and 10 branches (§3 and §5: `TradeService` +5/+3, `PortfolioValuationCalculator` +3/+4, `PortfolioValuationService` +3/+3, and `GlobalExceptionHandler.handleUnexpected` +2 lines). The newly covered code at the 135-test stage is therefore both guards in `TransactionalTradeMetrics` (2 lines, 2 branches), the non-canonical-ID branch in `CorrelationIdFilter` (1 line, 1 branch) and the `GET /trades` path in `TradeController` (1 line). Most of the review's changes strengthened assertions on code that was already executed, which coverage cannot show.
 
 The P0 classes are unchanged from §5, as the 135-test XML confirms line by line: `TradeService` 37/52 branches (the same 13 defensive duplicates and 2 impossible cases), `PortfolioValuationCalculator` 29/34 (the five persisted-data checks on line 57) and `PortfolioValuationService` 6/6.
+
+## 8. Third follow-up: requirement-driven test review (137 tests)
+
+The third review asked a different question: does each test check a distinct, requirement-level behaviour, or does it repeat one that another test already checks with a different input? It applied five principles. Every test needs a unique purpose. Partly valid input, and valid input that falls on a boundary, are worth more than further happy-path cases. Integration tests should follow complete business operations. Failure and recovery should be exercised, not assumed. Every test should trace to a requirement in [LO1](LO1-requirements.md).
+
+**Removed: eight tests that repeated another test's behaviour.** Each removed test fell in the same partition as a retained boundary case, and the retained case sits closer to the boundary. All eight equivalence partitions and FT-01–FT-12 remain exercised ([LO3 design §2](LO3-test-design.md#22-equivalence-partitions)).
+
+| Removed test | Input | Same behaviour already checked by |
+|---|---|---|
+| `MarketPriceFreshnessPolicyTest.shouldAcceptFreshQuote` | 60 s old | FT-09, FT-10 |
+| `MarketPriceFreshnessPolicyTest.shouldRejectQuoteOlderThan24Hours` | 25 h old | FT-07 (24 h + 1 s) |
+| `MarketPriceFreshnessPolicyTest.shouldAcceptQuoteAt24HourBoundary` | exactly 24 h | FT-08 (same input) |
+| `MarketPriceFreshnessPolicyTest.shouldRejectFarFutureTimestamp` | 10 min ahead | FT-12 (5 min + 1 s) |
+| `TradeServiceTest.shouldAllowBuyWithEnoughCash` | BUY 2,000.00 with 10,000.00 | FT-02, FT-03 |
+| `TradeServiceTest.shouldRejectBuyWhenCashInsufficient` | BUY 2,000.00 with 1,000.00 | FT-01 |
+| `TradeServiceTest.shouldRejectSellWhenPositionInsufficient` | SELL 10 of 5 held | FT-06 |
+| `MarketPriceServiceTest.shouldRejectNegativePrice` | −10.00 | MP-B1 (−0.01) |
+
+The removed rejection tests asserted only the exception type. FT-01 and FT-06 now also assert the message (`Insufficient cash`, `Insufficient position`), so the retained tests are stronger than the ones removed.
+
+**Added: ten tests for behaviour no existing test checked.**
+
+| ID | Principle | Scenario and oracle | Requirement |
+|---|---|---|---|
+| R6-E1 | Partly valid input | Valid symbol and side, but quantity 2.5 and price 100.005. Expect 400 listing exactly `quantity` and `price`, no trade stored, the `executed` counter unchanged; the corrected request with the *same* key then returns 201 (a rejected request must not consume the key) | R2, R6 |
+| BV-K1–BV-K4 | Valid format on a boundary | Idempotency-Key of 7, 8, 128 and 129 allowed characters → 400, 201, 201, 400. The 128-character key must also fit the `request_key` column | R2, R6 |
+| BV-S1–BV-S2 | Valid format on a boundary | Well-formed symbol of 20 and 21 characters → 201, 400; the 400 must come from validation (`symbol` only), not from the 20-character column as a server error | R6 |
+| R4-V8 | Partly valid data | Two open positions, one quote fresh and one 25 h old. Expect 409 naming the stale symbol, not a valuation that silently uses the fresh quote alone; after the refresh, 200 with exact cash, market value and total | R3, R4 |
+| R4-V9 | Unexpected behaviour | A closed position (BUY 3, SELL 3) without a quote next to an open one without a quote. Expect 409 naming only the open symbol; after pricing it, 200 with one position and the closed trade's realised P&L (60.00) kept | R3, R4 |
+| R1-F1 | Complete business flow | BUY 6, BUY 4, SELL 10, with the symbol in different letter cases. Cash goes 10,000.00 → 9,000.00 → 10,000.00, the position closes, valuation returns zero P&L without needing a quote, and history holds three trades under one upper-case symbol | R1, R3, R4 |
+
+R1-F1 follows the pattern of an account that is credited twice and then debited by the same total, which must return to its starting state. Three components (trade execution, position calculation and valuation) must agree for it to pass.
+
+**Added: an automated failure-and-recovery check in CI.** The Docker job now runs [`scripts/ci-recovery.sh`](../../scripts/ci-recovery.sh) after the smoke test, against the same isolated Compose stack. It stops the PostgreSQL container while the application keeps running. It then checks that health turns to 503 and that a trade attempted during the outage fails with a 5xx Problem Details body whose detail is the generic `An unexpected error occurred`, with no `Exception`, `org.`, `java.`, `SQL`, `jdbc` or `postgres` text. After the database restarts, health must return to 200 without restarting the application, and the trade history must still be empty. The client then retries with the *same* Idempotency-Key and gets 201, and a second retry replays the same trade (200, same ID), leaving exactly one trade in history. This turns the earlier operator-reported experiment ([LO5](LO5-recovery-experiment.md)) into repeatable evidence, and it shows that R2 is what makes a client retry after a failure safe.
+
+**Results.** All 137 tests passed with no failures, errors or skips ([137-test `mvnw clean verify` run](LO4-follow-up-3-test-run.txt#L7391)). CI [run #44](https://github.com/without-paper/mini-aladdin/actions/runs/45266517282) on commit `910bffd` passed both jobs, including the new step *Database failure and recovery check*.
+
+| Measure | 135 tests (§7) | 137 tests |
+|---|---:|---:|
+| Line coverage | 591/615 (96.1%) | 591/615 (96.1%) |
+| Branch coverage | 136/180 (75.6%) | 136/180 (75.6%) |
+| Instructions | 2,087/2,187 | 2,087/2,187 |
+
+Evidence: [137-test JaCoCo CSV](LO4-follow-up-3-jacoco.csv) and [XML](LO4-follow-up-3-jacoco.xml). Coverage did not change: the 137-test XML matches the 135-test XML line by line, including the branch counts on each line. The eight removed tests therefore covered nothing that the remaining suite does not. The ten new tests check outcomes on code that was already executed: which fields are reported, whether a key stays unused, which symbol a conflict names, and whether a round trip returns to its start. Coverage cannot measure any of these. PIT was not re-run, for the reasons in §6: the calculator and the three PIT target classes are unchanged by this review.
+
+**Limits.** The combinatorial R2 table is kept although 9 of its 12 rows lead to the same outcome, because it is the documented category-partition record ([LO3 design](LO3-test-design.md)); it is the main remaining overlap. The CI check injects one fault type (the database stopping cleanly, then returning) at one point in the flow. It does not test network partitions, slow or intermittent responses, or a failure during commit. The application has no retry, back-off or failover of its own; recovery relies on the client retrying with the same key.

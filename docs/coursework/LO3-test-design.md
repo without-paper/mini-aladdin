@@ -55,7 +55,7 @@ FT-01–FT-06 are implemented as parameterised JUnit tests in `TradeServiceTest`
 
 FT-07–FT-12 are implemented in `MarketPriceFreshnessPolicyTest`, using `validateAt()` with a fixed reference time.
 
-Existing tests for missing timestamps, empty portfolios and ordinary financial calculations are retained.
+Existing tests for missing timestamps, empty portfolios and ordinary financial calculations are retained. (A later review removed seven earlier tests that repeated FT cases with inputs further from the boundaries; see [LO4 follow-up §8](LO4-follow-up.md#8-third-follow-up-requirement-driven-test-review-137-tests).)
 
 The unit-level trade oracle checks acceptance or rejection, returned trade details and the expected `saveAndFlush()` interaction. It does not independently verify committed database state. Complementary PostgreSQL integration tests in LO3-B–D verify observable persisted trade and financial state.
 

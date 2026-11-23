@@ -45,10 +45,11 @@ src/test/                         Unit and integration tests (JUnit tags R1–R8
 docs/coursework/                  Software Testing coursework evidence (LO1–LO5)
 performance/                      R7 benchmark scripts and statistics
 scripts/ci-smoke.sh               HTTP smoke test run by CI
+scripts/ci-recovery.sh            Database failure-and-recovery check run by CI
 .github/workflows/ci.yml          CI workflow
 Dockerfile                        Multi-stage Java application build
 compose.yaml                      Local application + PostgreSQL stack
-compose.smoke.yaml                Isolated application + PostgreSQL stack for the CI smoke test
+compose.smoke.yaml                Isolated application + PostgreSQL stack for the CI smoke and recovery checks
 ```
 
 The controller layer is intentionally thin; business rules reside in services. Financial calculations and freshness validation are separate service-layer components. See [Architecture](docs/ARCHITECTURE.md).
@@ -141,7 +142,7 @@ Do not expose Actuator metrics to untrusted networks without protection.
 `.github/workflows/ci.yml` runs on pushes to `master` and `feature/**`, on pull requests to `master` and on manual dispatch. It has two jobs:
 
 1. **Java 21 · Maven Tests:** `./mvnw -B -ntp clean verify`, including the PostgreSQL Testcontainers integration tests and JaCoCo. Test reports are uploaded as an artifact.
-2. **Docker Image Build:** runs only if the tests pass. It builds and loads the image, starts it with a fresh PostgreSQL 17 database in an isolated Compose project (`compose.smoke.yaml`) and runs `scripts/ci-smoke.sh`: health, portfolio creation, a BUY, an idempotent replay that must not create a duplicate trade, and a valuation that must reconcile. Container logs are printed on failure, and the environment is always removed.
+2. **Docker Image Build:** runs only if the tests pass. It builds and loads the image, starts it with a fresh PostgreSQL 17 database in an isolated Compose project (`compose.smoke.yaml`) and runs `scripts/ci-smoke.sh`: health, portfolio creation, a BUY, an idempotent replay that must not create a duplicate trade, and a valuation that must reconcile. It then runs `scripts/ci-recovery.sh`, which stops PostgreSQL under the running application and checks that health reports 503, that a trade during the outage fails with a generic error body and stores nothing, and that after the restart health recovers and a retry with the same `Idempotency-Key` executes exactly once. Container logs are printed on failure, and the environment is always removed.
 
 The workflow verifies a release candidate; it does not publish the image or deploy the application. PIT mutation testing and the R7 performance benchmark are run manually, not in CI. The backend has no authentication/authorisation, live market-data feed, exchange connectivity, fee/tax/corporate-action accounting, or production-grade deployment security. Read the [Engineering Review](docs/ENGINEERING_REVIEW.md) before considering any nonlocal deployment.
 
@@ -157,7 +158,7 @@ This branch also holds the evidence for a Software Testing coursework portfolio,
 | LO4 Limitations, targets and statistics | [LO4-evaluation.md](docs/coursework/LO4-evaluation.md) (97-test stage), [LO4-follow-up.md](docs/coursework/LO4-follow-up.md) |
 | LO5 Reviews and automation | [LO5-review-and-automation.md](docs/coursework/LO5-review-and-automation.md), [LO5-recovery-experiment.md](docs/coursework/LO5-recovery-experiment.md) |
 
-Current state: 135 passing tests (grown from a 69-test baseline); JaCoCo 591/615 lines (96.1%) and 136/180 branches (75.6%); PIT 23/23 mutants killed in `PortfolioValuationCalculator`, the only class mutated (last run at the 121-test stage; [LO4 follow-up §6](docs/coursework/LO4-follow-up.md#6-second-follow-up-test-code-review) explains why it still applies). Every log, report and CI run is listed in the [evidence index](docs/coursework/LO3-test-results.md#7-evidence-index).
+Current state: 137 passing tests (grown from a 69-test baseline; the latest review removed eight repeated tests and added edge-case, business-flow and recovery checks, see [LO4 follow-up §8](docs/coursework/LO4-follow-up.md#8-third-follow-up-requirement-driven-test-review-137-tests)); JaCoCo 591/615 lines (96.1%) and 136/180 branches (75.6%); PIT 23/23 mutants killed in `PortfolioValuationCalculator`, the only class mutated (last run at the 121-test stage; [LO4 follow-up §6](docs/coursework/LO4-follow-up.md#6-second-follow-up-test-code-review) explains why it still applies). Every log, report and CI run is listed in the [evidence index](docs/coursework/LO3-test-results.md#7-evidence-index).
 
 ## Documentation
 
