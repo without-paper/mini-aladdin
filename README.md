@@ -24,7 +24,7 @@ Mini Aladdin is an independent educational project focused on transaction-safe t
 | Persistence | PostgreSQL 17, Spring Data JPA, Hibernate, Flyway |
 | Validation and errors | Jakarta Bean Validation, RFC 9457 `ProblemDetail` |
 | Observability | SLF4J/MDC, structured JSON logging, Actuator, Micrometer |
-| Tests | JUnit 5, Mockito, MockMvc, Testcontainers |
+| Tests | JUnit 5 (requirement tags R1–R8), Mockito, MockMvc, Testcontainers, JaCoCo, PIT |
 | Build / delivery | Maven Wrapper, Docker multi-stage build, Docker Compose, GitHub Actions |
 
 ## Project layout
@@ -41,10 +41,14 @@ src/main/java/com/minialaddin/
 ├── repository/      PortfolioRepository, TradeRepository, MarketPriceRepository
 └── service/         Portfolio, trade, reporting, market-price and valuation logic
 src/main/resources/db/migration/   Flyway V1–V4
-src/test/                         Unit and integration tests
+src/test/                         Unit and integration tests (JUnit tags R1–R8, integration)
+docs/coursework/                  Software Testing coursework evidence (LO1–LO5)
+performance/                      R7 benchmark scripts and statistics
+scripts/ci-smoke.sh               HTTP smoke test run by CI
 .github/workflows/ci.yml          CI workflow
 Dockerfile                        Multi-stage Java application build
 compose.yaml                      Local application + PostgreSQL stack
+compose.smoke.yaml                Isolated application + PostgreSQL stack for the CI smoke test
 ```
 
 The controller layer is intentionally thin; business rules reside in services. Financial calculations and freshness validation are separate service-layer components. See [Architecture](docs/ARCHITECTURE.md).
@@ -98,6 +102,14 @@ Docker must be running for PostgreSQL Testcontainers tests.
 ./mvnw clean verify
 ```
 
+`clean verify` also writes a JaCoCo coverage report to `target/site/jacoco/`. Useful variants (on Windows use `.\mvnw.cmd` and quote the `-D` arguments):
+
+```bash
+./mvnw test -Dgroups=R5                      # tests for one requirement (tags R1–R8)
+./mvnw test -DexcludedGroups=integration     # unit tests only; no Docker needed
+./mvnw test-compile pitest:mutationCoverage  # PIT on PortfolioValuationCalculator; report in target/pit-reports/
+```
+
 ## REST API overview
 
 | Method | Endpoint | Purpose |
@@ -126,10 +138,30 @@ Do not expose Actuator metrics to untrusted networks without protection.
 
 ## CI and limitations
 
-`.github/workflows/ci.yml` runs the Maven test suite with Java 21 and validates the multi-stage Docker build. It does not publish the image or deploy the application. The backend has no authentication/authorisation, live market-data feed, exchange connectivity, fee/tax/corporate-action accounting, or production-grade deployment security. Read the [Engineering Review](docs/ENGINEERING_REVIEW.md) before considering any nonlocal deployment.
+`.github/workflows/ci.yml` runs on pushes to `master` and `feature/**`, on pull requests to `master` and on manual dispatch. It has two jobs:
+
+1. **Java 21 · Maven Tests:** `./mvnw -B -ntp clean verify`, including the PostgreSQL Testcontainers integration tests and JaCoCo. Test reports are uploaded as an artifact.
+2. **Docker Image Build:** runs only if the tests pass. It builds and loads the image, starts it with a fresh PostgreSQL 17 database in an isolated Compose project (`compose.smoke.yaml`) and runs `scripts/ci-smoke.sh`: health, portfolio creation, a BUY, an idempotent replay that must not create a duplicate trade, and a valuation that must reconcile. Container logs are printed on failure, and the environment is always removed.
+
+The workflow verifies a release candidate; it does not publish the image or deploy the application. PIT mutation testing and the R7 performance benchmark are run manually, not in CI. The backend has no authentication/authorisation, live market-data feed, exchange connectivity, fee/tax/corporate-action accounting, or production-grade deployment security. Read the [Engineering Review](docs/ENGINEERING_REVIEW.md) before considering any nonlocal deployment.
+
+## Software Testing coursework
+
+This branch also holds the evidence for a Software Testing coursework portfolio, in [`docs/coursework/`](docs/coursework/):
+
+| Learning outcome | Documents |
+|---|---|
+| LO1 Requirements and test strategy | [LO1-requirements.md](docs/coursework/LO1-requirements.md) |
+| LO2 Test plan and instrumentation | [LO2-test-plan.md](docs/coursework/LO2-test-plan.md) |
+| LO3 Test design, techniques and results | [LO3-test-design.md](docs/coursework/LO3-test-design.md), [LO3-test-results.md](docs/coursework/LO3-test-results.md) |
+| LO4 Limitations, targets and statistics | [LO4-evaluation.md](docs/coursework/LO4-evaluation.md) (97-test stage), [LO4-follow-up.md](docs/coursework/LO4-follow-up.md) |
+| LO5 Reviews and automation | [LO5-review-and-automation.md](docs/coursework/LO5-review-and-automation.md), [LO5-recovery-experiment.md](docs/coursework/LO5-recovery-experiment.md) |
+
+Current state: 135 passing tests (grown from a 69-test baseline); JaCoCo 591/615 lines (96.1%) and 136/180 branches (75.6%); PIT 23/23 mutants killed in `PortfolioValuationCalculator`, the only class mutated (last run at the 121-test stage; [LO4 follow-up §6](docs/coursework/LO4-follow-up.md#6-second-follow-up-test-code-review) explains why it still applies). Every log, report and CI run is listed in the [evidence index](docs/coursework/LO3-test-results.md#7-evidence-index).
 
 ## Documentation
 
+- [Software Testing coursework evidence](docs/coursework/LO3-test-results.md#7-evidence-index)
 - [Architecture & consistency model](docs/ARCHITECTURE.md)
 - [API reference](docs/API.md)
 - [Development, testing & deployment](docs/DEVELOPMENT.md)

@@ -66,14 +66,16 @@ Remove the later call to `tradeMetrics.recordReplayed()` from the **new-trade** 
 
 ## Acceptance tests for v1.0.0
 
-- [ ] Fix and test the replay-counter defect identified above.
-- [ ] Confirm actual `pom.xml` project version and decide whether to set `1.0.0` before tagging.
+> **Status (23 Nov 2026):** no `v1.0.0` release has been made, and the coursework branch is not a release. The ticked items are done; the others remain the gate for a future release. On the coursework branch the full test suite (135 tests, including Testcontainers) and both CI jobs pass ([CI run #42](https://github.com/without-paper/mini-aladdin/actions/runs/45209278587)), but not on a tagged release commit.
+
+- [x] Fix and test the replay-counter defect identified above (commit `b66b0f5`; covered by `TradeMetricsTest` and the counter checks in `TradeIdempotencyConcurrencyIntegrationTest`).
+- [x] Confirm actual `pom.xml` project version and decide whether to set `1.0.0` before tagging (`pom.xml` is already `1.0.0`).
 - [ ] Run the full Java 21 test suite (`clean verify`), including Testcontainers.
 - [ ] Confirm GitHub Actions **Maven Tests** and **Docker Image Build** jobs pass on the release commit.
 - [ ] Confirm Compose starts the app/database stack and `/actuator/health` returns `UP`.
 - [ ] Compare portfolio/trade/market-price counts against known data before and after container restart; verify Flyway V1–V4 checksums.
 - [ ] Review `README.md`, API examples, `.env.example`, actual `compose.yaml` and Dockerfile for consistency.
-- [ ] Ensure `.env`, backups, authentication tokens and real passwords are absent from tracked files and Git history; rotate any exposed secret.
+- [x] Ensure `.env`, backups, authentication tokens and real passwords are absent from tracked files and Git history; rotate any exposed secret (checked 23 Nov 2026: `.env` and `backups/` were never committed; only placeholder and CI-only passwords appear).
 - [ ] Confirm the release explicitly states simulated-trading and non-production limitations.
 - [ ] Only after every check passes, merge the documentation PR, create an annotated `v1.0.0` tag and publish a GitHub release.
 

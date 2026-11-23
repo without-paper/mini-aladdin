@@ -131,4 +131,4 @@ Counts overlap because a class can check more than one requirement. The 85 tests
 - [LO4 follow-up: 121-test run](LO4-follow-up-test-run.txt)
 - [Test-code review: 135-test run](LO4-follow-up-2-test-run.txt)
 - [Test-code review: 135-test JaCoCo CSV](LO4-follow-up-2-jacoco.csv) and [XML](LO4-follow-up-2-jacoco.xml)
-- [Latest verified CI run (#41, commit `4ab1008`)](https://github.com/without-paper/mini-aladdin/actions/runs/45089342461)
+- CI runs on the 135-test suite: [#41](https://github.com/without-paper/mini-aladdin/actions/runs/45089342461) (commit `4ab1008`, first run) and [#42](https://github.com/without-paper/mini-aladdin/actions/runs/45209278587) (commit `8b29ea8`, final code and tests)
