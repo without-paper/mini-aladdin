@@ -7,6 +7,7 @@ import com.minialaddin.model.Portfolio;
 import com.minialaddin.service.PortfolioService;
 import com.minialaddin.service.PortfolioValuationCalculator;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -39,6 +40,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * The real PortfolioValuationService invariant then fails, and the
  * response is checked end to end through the real filter and handler.
  */
+@Tag("R6")
+@Tag("R8")
+@Tag("integration")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestDatabaseConfiguration.class)

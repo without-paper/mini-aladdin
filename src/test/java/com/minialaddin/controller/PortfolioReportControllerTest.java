@@ -8,6 +8,8 @@ import com.minialaddin.model.TradeSide;
 import com.minialaddin.service.PortfolioService;
 import com.minialaddin.service.TradeService;
 
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,9 +20,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import static com.minialaddin.support.MoneyMatchers.assertMoneyField;
+import static com.minialaddin.support.MoneyMatchers.money;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@Tag("R1")
+@Tag("R6")
+@Tag("integration")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestDatabaseConfiguration.class)
@@ -57,6 +64,7 @@ class PortfolioReportControllerTest {
     }
 
     @Test
+    @DisplayName("R1-C1: cash and positions reflect BUY and SELL history")
     void shouldReturnCorrectCashAndPositions() throws Exception {
 
         Portfolio portfolio = portfolioService.createPortfolio(
@@ -70,14 +78,19 @@ class PortfolioReportControllerTest {
         execute(id, "MSFT", TradeSide.BUY, "5", "300.00");
         execute(id, "AAPL", TradeSide.SELL, "3", "220.00");
 
-        mockMvc.perform(get(
+        String cashJson = mockMvc.perform(get(
                         "/api/portfolios/{id}/cash", id
                 ))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.portfolioId").value(id))
                 .andExpect(jsonPath("$.currency").value("USD"))
-                .andExpect(jsonPath("$.initialCash").value(10000.00))
-                .andExpect(jsonPath("$.availableCash").value(7160.00));
+                .andExpect(jsonPath("$.initialCash", money("10000.00")))
+                .andExpect(jsonPath("$.availableCash", money("7160.00")))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertMoneyField(cashJson, "availableCash", "7160.00");
 
         mockMvc.perform(get(
                         "/api/portfolios/{id}/positions", id
@@ -91,6 +104,7 @@ class PortfolioReportControllerTest {
     }
 
     @Test
+    @DisplayName("R6-C2: cash and positions of an unknown portfolio return 404")
     void shouldReturnNotFoundForUnknownPortfolio() throws Exception {
 
         mockMvc.perform(get(

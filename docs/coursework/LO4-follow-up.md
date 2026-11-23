@@ -68,3 +68,25 @@ Evidence: [121-test `mvnw clean verify` run](LO4-follow-up-test-run.txt#L4995) (
 **Which tests killed the former survivors** (from `mutations.xml`): line 42, MB-01 (initial cash 0.00); line 60, MB-03 (historical quantity 0, and historical price 0.00); line 115, MB-02 (initial cash exactly 2000.00, so cash ends at 0.00). Line 78 was already killed by `shouldPreserveRealisedPnlAfterPositionClosed`. Each survivor fell to a single boundary case, which confirms that all four were missing tests, not equivalent mutants.
 
 **Conclusion.** The P0 branch and mutation targets set in §2 are now met, and every uncovered branch in the P0 classes is classified. The remaining R7 work includes testing the new correlation-ID capture against actual server logs, repeating independent sessions and introducing controlled concurrent load (LO4 §5).
+
+## 6. Second follow-up: test-code review
+
+A review of the test code itself, rather than of its coverage numbers, found gaps that coverage and mutation scores could not show: some tests could pass without exercising the behaviour they were named after, and some assertions were too weak to detect a wrong result.
+
+| # | Gap found | Change | Requirement |
+|---|---|---|---|
+| G1 | The concurrency test started two threads from a latch, but nothing forced them to overlap; one request could finish before the other started, and the test would still pass through the ordinary replay path | New `PortfolioLockGate` holds the portfolio row lock until PostgreSQL (`pg_stat_activity`) reports both requests blocked on it; `TradeIdempotencyConcurrencyIntegrationTest` (R5-C2) now uses it | R2, R5 |
+| G2 | No test raced two *different* trades that are each affordable but not together | `TradeConcurrentOverspendIntegrationTest` (R5-C1): 2 × 600.00 against 1,000.00 under the gate; exactly one executes, one is rejected, cash is 400.00 | R1, R5 |
+| G3 | The snapshot test read `market_prices` through `JdbcTemplate`, so it checked PostgreSQL, not `PortfolioValuationService` | Javadoc now states that scope; new `PortfolioValuationConsistencyIntegrationTest` (R5-S1) commits a trade and a price *inside* a real valuation (via a spy) and checks that the result uses the old snapshot and REPEATABLE_READ | R3, R5 |
+| G4 | The rollback test asserted only "some `IllegalStateException`", so a failure before the insert would also pass | It now checks the exception message, that the trade was visible inside the transaction, and that the after-commit `executed` metric did not move | R5, R8 |
+| G5 | R4 freshness was tested only at unit level (`validateAt`) | Three API tests backdate or forward-date `updated_at`: 25 h old → 409, 23 h old → 200, 10 min ahead → 409 | R4 |
+| G6 | Money in JSON was compared as `double` (`value(7160.00)`), which cannot see whether the API returned two decimals | `MoneyMatchers.money()` compares as `BigDecimal`; `assertMoneyField()` checks the raw JSON text (e.g. `7160.00`) | R3 |
+| G7 | Valuation integration tests shared the global `AAPL`/`MSFT` quotes, so one test could overwrite another's price | Random symbols per test | R3, R4 |
+| G8 | Three exception tests checked only the type, so the wrong guard could fire unnoticed | They now assert the exact message (`Negative position for AAPL`, `Calculated cash balance is negative`, `Insufficient historical position: AAPL`) | R1, R3 |
+| G9 | Untested paths: `GET /trades` and its 404; the 0.00 / 0.01 price boundary; both guards in `TransactionalTradeMetrics`; a non-canonical (upper-case) correlation ID; correlation IDs in the application's log lines | `TradeControllerTest` (2), `MarketPriceServiceTest` MP-B1–MP-B3 (3), `TransactionalTradeMetricsTest` (2), `CorrelationIdFilterTest` (1), `CorrelationIdLoggingIntegrationTest` (1, `OutputCaptureExtension`) | R1, R4, R6, R8 |
+| G10 | 409 tests checked only the status, not which conflict occurred | Combinatorial and state-machine tests also assert the conflict `detail` | R2 |
+| G11 | No link from a test to its requirement or design ID | `@Tag` per requirement plus `integration`; parameterised cases named FT-xx / CP-xx (see [LO3 results §6](LO3-test-results.md#6-requirement-traceability-junit-tags)) | all |
+
+**Result.** 14 new test cases (121 → 135); evidence: [135-test `mvnw clean verify` run](LO4-follow-up-2-test-run.txt). PIT was not re-run: its scope and configuration are unchanged, and the calculator tests only gained one message assertion, so the 23/23 result in §5 is not expected to change.
+
+**Limits.** The lock gate makes the "both requests queued" schedule deterministic, but it is still only one interleaving; it does not explore the schedule space. Log assertions depend on the configured logstash console format. The JaCoCo figures in §5 are from the 121-test run and are not updated here.

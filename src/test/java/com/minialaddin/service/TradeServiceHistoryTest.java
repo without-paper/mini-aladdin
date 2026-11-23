@@ -14,6 +14,7 @@ import com.minialaddin.repository.PortfolioRepository;
 import com.minialaddin.repository.TradeRepository;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -40,6 +41,7 @@ import static org.mockito.Mockito.*;
  * same one-cent / one-share boundary analysis as FT-01 to FT-06, and
  * also cover execution against a missing portfolio (line 165).
  */
+@Tag("R1")
 class TradeServiceHistoryTest {
 
     private static final Long PORTFOLIO_ID = 1L;

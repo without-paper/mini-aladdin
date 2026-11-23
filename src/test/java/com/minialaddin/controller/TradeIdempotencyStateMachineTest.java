@@ -7,6 +7,8 @@ import com.minialaddin.model.Portfolio;
 import com.minialaddin.repository.TradeRepository;
 import com.minialaddin.service.PortfolioService;
 
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,10 +21,13 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
 
+import static com.minialaddin.support.MoneyMatchers.money;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@Tag("R2")
+@Tag("integration")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestDatabaseConfiguration.class)
@@ -75,7 +80,7 @@ class TradeIdempotencyStateMachineTest {
     private void assertPortfolioState(
             Long portfolioId,
             int expectedTrades,
-            double expectedCash
+            String expectedCash
     ) throws Exception {
 
         int count = tradeRepository
@@ -91,11 +96,12 @@ class TradeIdempotencyStateMachineTest {
                         portfolioId
                 ))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.availableCash")
-                        .value(expectedCash));
+                .andExpect(jsonPath("$.availableCash",
+                        money(expectedCash)));
     }
 
     @Test
+    @DisplayName("FSM: idempotency key follows U->U, U->B, B->B (replay), B->B (conflict)")
     void shouldFollowIdempotencyStateMachine()
             throws Exception {
 
@@ -107,7 +113,7 @@ class TradeIdempotencyStateMachineTest {
 
         Long id = portfolio.getId();
 
-        assertPortfolioState(id, 0, 200.0);
+        assertPortfolioState(id, 0, "200.00");
 
         // T1: U -> U
         // Insufficient cash must not bind the key.
@@ -116,7 +122,7 @@ class TradeIdempotencyStateMachineTest {
                 .andExpect(jsonPath("$.detail")
                         .value("Insufficient cash"));
 
-        assertPortfolioState(id, 0, 200.0);
+        assertPortfolioState(id, 0, "200.00");
 
         // T2: U -> B
         // The same key can now execute a valid trade.
@@ -133,7 +139,7 @@ class TradeIdempotencyStateMachineTest {
                 "$.id"
         )).longValue();
 
-        assertPortfolioState(id, 1, 0.0);
+        assertPortfolioState(id, 1, "0.00");
 
         // T3: B -> B
         // Equivalent payload replays the original trade.
@@ -142,16 +148,19 @@ class TradeIdempotencyStateMachineTest {
                 .andExpect(jsonPath("$.id")
                         .value(originalTradeId));
 
-        assertPortfolioState(id, 1, 0.0);
+        assertPortfolioState(id, 1, "0.00");
 
         // T4: B -> B
         // Different payload conflicts with the existing binding.
         sendTrade(id, DIFFERENT)
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status")
-                        .value(409));
+                        .value(409))
+                .andExpect(jsonPath("$.detail")
+                        .value("Idempotency-Key was already used "
+                                + "with a different request"));
 
-        assertPortfolioState(id, 1, 0.0);
+        assertPortfolioState(id, 1, "0.00");
 
         // T3 again: B -> B
         // A conflict must not corrupt the original binding.
@@ -160,7 +169,7 @@ class TradeIdempotencyStateMachineTest {
                 .andExpect(jsonPath("$.id")
                         .value(originalTradeId));
 
-        assertPortfolioState(id, 1, 0.0);
+        assertPortfolioState(id, 1, "0.00");
 
         // Final observable portfolio state
         mockMvc.perform(get(

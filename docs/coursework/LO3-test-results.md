@@ -11,6 +11,7 @@
 | LO3-D, post-fix | Regression and PostgreSQL API integration tests | 97 | 0 | 0 | 0 |
 | LO3-E | JaCoCo-instrumented full regression verification | 97 | 0 | 0 | 0 |
 | LO4 follow-up | SELL-history, boundary, invariant and HTTP 500 contract tests ([details](LO4-follow-up.md)) | 121 | 0 | 0 | 0 |
+| Test-code review | Deterministic lock-contention, API stale-quote, log-correlation, trade-history and price-boundary tests; existing oracles strengthened ([details](LO4-follow-up.md#6-second-follow-up-test-code-review)) | 135 | 0 | 0 | 0 |
 
 LO3-D also produced **two intentionally recorded pre-fix failures**: a unit reconciliation test (`expected: <0> but was: <-1>`) and an API integration test (HTTP 500 instead of 200). These are the evidence of defect D-02, not successful runs. Both tests passed after the production fix, and the complete post-fix regression suite passed.
 
@@ -80,7 +81,31 @@ See [LO4 follow-up](LO4-follow-up.md).
 
 **Defect count:** one distinct production defect confirmed and fixed during LO3, supported by two failing pre-fix tests. The four surviving PIT mutants are separate test-quality investigation candidates and are not counted as production defects. A production defect count is reported here rather than an unqualified defect-yield percentage, because a consistent detection-opportunity denominator has not been defined.
 
-## 6. Evidence Index
+## 6. Requirement Traceability (JUnit Tags)
+
+Every test class carries one `@Tag` per requirement it checks, and every `@SpringBootTest` class also carries `integration` (these start PostgreSQL through Testcontainers). Parameterised cases are named after their design IDs (FT-01 to FT-12, CP-1 to CP-12 and CP-E1, MP-B1 to MP-B3), so the Surefire reports can be traced back to [LO3-test-design.md](LO3-test-design.md).
+
+| Tag | Tests | Test classes |
+|---|---:|---|
+| R1 | 31 | `TradeServiceTest`, `TradeServiceHistoryTest`, `PortfolioCalculationServiceTest`, `PortfolioReportControllerTest`, `TradeControllerTest`, `TradeConcurrentOverspendIntegrationTest` |
+| R2 | 15 | `TradeIdempotencyCombinatorialTest`, `TradeIdempotencyStateMachineTest`, `TradeIdempotencyConcurrencyIntegrationTest` |
+| R3 | 32 | `PortfolioValuationCalculatorTest`, `PortfolioValuationRegressionTest`, `PortfolioValuationRoundingRegressionTest`, `PortfolioValuationServiceInvariantTest`, `PortfolioValuationRoundingIntegrationTest`, `PortfolioValuationControllerTest`, `PortfolioValuationConsistencyIntegrationTest` |
+| R4 | 30 | `MarketPriceFreshnessPolicyTest`, `MarketPriceServiceTest`, `MarketPriceControllerTest`, `PortfolioValuationControllerTest` |
+| R5 | 5 | `TradeRollbackIntegrationTest`, `TradeIdempotencyConcurrencyIntegrationTest`, `TradeConcurrentOverspendIntegrationTest`, `PortfolioSnapshotIsolationIntegrationTest`, `PortfolioValuationConsistencyIntegrationTest` |
+| R6 | 29 | `PortfolioServiceTest`, `PortfolioControllerTest`, `GlobalExceptionHandlerIntegrationTest`, `UnexpectedErrorProblemDetailIntegrationTest`, `MarketPriceControllerTest`, `PortfolioReportControllerTest`, `PortfolioValuationControllerTest`, `TradeControllerTest` |
+| R7 | — | Not a JUnit test: measured by `performance/benchmark-valuation-r7.ps1` (LO3-F evidence in §7) |
+| R8 | 19 | `TradeMetricsTest`, `TransactionalTradeMetricsTest`, `TransactionalTradeMetricsIntegrationTest`, `CorrelationIdFilterTest`, `CorrelationIdIntegrationTest`, `CorrelationIdLoggingIntegrationTest`, `UnexpectedErrorProblemDetailIntegrationTest`, `TradeRollbackIntegrationTest` |
+| integration | 50 | All 19 `@SpringBootTest` classes |
+
+Counts overlap because a class can check more than one requirement. The 85 tests without the `integration` tag run without Docker.
+
+```text
+./mvnw test -Dgroups=R5                    # one requirement
+./mvnw test -Dgroups="R1 | R2"             # several requirements
+./mvnw test -DexcludedGroups=integration   # unit tests only, no Docker
+```
+
+## 7. Evidence Index
 
 - [Baseline test run](baseline-test-run.txt)
 - [LO3-A functional tests](LO3-A-functional-test-run.txt)
@@ -99,3 +124,4 @@ See [LO4 follow-up](LO4-follow-up.md).
 - [Detailed LO3 test design](LO3-test-design.md)
 - [LO4 follow-up: branch classification, new tests, results](LO4-follow-up.md)
 - [R7 statistical analysis](LO4-R7-statistics.txt) (script: `performance/r7_statistics.py`)
+- [Test-code review: 135-test run](LO4-follow-up-2-test-run.txt)

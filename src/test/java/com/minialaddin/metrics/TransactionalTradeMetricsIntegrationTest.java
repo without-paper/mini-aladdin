@@ -5,6 +5,7 @@ import com.minialaddin.config.TestDatabaseConfiguration;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,6 +15,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("R8")
+@Tag("integration")
 @SpringBootTest
 @Import(TestDatabaseConfiguration.class)
 class TransactionalTradeMetricsIntegrationTest {

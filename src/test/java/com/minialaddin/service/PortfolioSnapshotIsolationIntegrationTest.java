@@ -3,6 +3,7 @@ package com.minialaddin.service;
 
 import com.minialaddin.config.TestDatabaseConfiguration;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,6 +19,18 @@ import java.util.concurrent.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * R5: database-level check of the isolation guarantee the valuation relies on.
+ *
+ * This test reads market_prices directly through JdbcTemplate inside a
+ * REPEATABLE_READ transaction, so it shows that PostgreSQL keeps one
+ * snapshot across a concurrent commit. It does not exercise
+ * PortfolioValuationService itself; the application-level check, which
+ * interleaves a commit inside a real valuation, is
+ * {@link PortfolioValuationConsistencyIntegrationTest}.
+ */
+@Tag("R5")
+@Tag("integration")
 @SpringBootTest
 @Import(TestDatabaseConfiguration.class)
 class PortfolioSnapshotIsolationIntegrationTest {

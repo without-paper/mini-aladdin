@@ -6,6 +6,7 @@ import com.minialaddin.model.Portfolio;
 import com.minialaddin.repository.PortfolioRepository;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -15,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@Tag("R6")
 class PortfolioServiceTest {
 
     private PortfolioRepository repository;

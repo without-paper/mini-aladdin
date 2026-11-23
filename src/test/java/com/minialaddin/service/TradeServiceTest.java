@@ -1,40 +1,34 @@
 
 package com.minialaddin.service;
 
+import com.minialaddin.dto.CreateTradeRequest;
+import com.minialaddin.dto.TradeExecutionResult;
 import com.minialaddin.dto.TradeResponse;
 import com.minialaddin.exception.PortfolioNotFoundException;
+import com.minialaddin.exception.TradeRejectedException;
 import com.minialaddin.metrics.TradeMetrics;
 import com.minialaddin.metrics.TransactionalTradeMetrics;
-import com.minialaddin.repository.PortfolioRepository;
-import com.minialaddin.repository.TradeRepository;
-import com.minialaddin.dto.CreateTradeRequest;
-import com.minialaddin.exception.TradeRejectedException;
 import com.minialaddin.model.Portfolio;
 import com.minialaddin.model.Trade;
 import com.minialaddin.model.TradeSide;
-import com.minialaddin.dto.TradeExecutionResult;
-import com.minialaddin.config.TestDatabaseConfiguration;
-import com.minialaddin.metrics.TradeMetrics;
-import com.minialaddin.metrics.TransactionalTradeMetrics;
+import com.minialaddin.repository.PortfolioRepository;
+import com.minialaddin.repository.TradeRepository;
 
 import org.junit.jupiter.api.BeforeEach;
-
-import org.springframework.context.annotation.Import;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import java.util.List;
-
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
+@Tag("R1")
 class TradeServiceTest {
 
     private PortfolioRepository portfolioRepository;
@@ -211,13 +205,14 @@ class TradeServiceTest {
 
 
 
-    @ParameterizedTest(name = "BUY: cash={0}, accepted={1}")
+    @ParameterizedTest(name = "{0}: BUY 10 @ 100.00 with cash={1}, accepted={2}")
     @CsvSource({
-            "999.99, false",
-            "1000.00, true",
-            "1000.01, true"
+            "FT-01, 999.99, false",
+            "FT-02, 1000.00, true",
+            "FT-03, 1000.01, true"
     })
     void shouldRespectBuyCashBoundary(
+            String caseId,
             String initialCash,
             boolean accepted
     ) {
@@ -275,13 +270,14 @@ class TradeServiceTest {
     }
 
 
-    @ParameterizedTest(name = "SELL: quantity={0}, accepted={1}")
+    @ParameterizedTest(name = "{0}: hold 10, SELL {1}, accepted={2}")
     @CsvSource({
-            "9, true",
-            "10, true",
-            "11, false"
+            "FT-04, 9, true",
+            "FT-05, 10, true",
+            "FT-06, 11, false"
     })
     void shouldRespectSellHoldingBoundary(
+            String caseId,
             String sellQuantity,
             boolean accepted
     ) {

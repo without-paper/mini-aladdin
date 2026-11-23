@@ -6,6 +6,7 @@ import com.minialaddin.dto.PositionValuationResponse;
 import com.minialaddin.exception.StaleMarketPriceException;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -16,6 +17,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("R4")
 class MarketPriceFreshnessPolicyTest {
 
     private MarketPriceFreshnessPolicy policy;
@@ -142,16 +144,17 @@ class MarketPriceFreshnessPolicyTest {
     }
 
 
-    @ParameterizedTest(name = "Quote offset={0}s, accepted={1}")
+    @ParameterizedTest(name = "{0}: quote offset={1}s, accepted={2}")
     @CsvSource({
-            "-86401, false",
-            "-86400, true",
-            "-86399, true",
-            "299, true",
-            "300, true",
-            "301, false"
+            "FT-07, -86401, false",
+            "FT-08, -86400, true",
+            "FT-09, -86399, true",
+            "FT-10, 299, true",
+            "FT-11, 300, true",
+            "FT-12, 301, false"
     })
     void shouldRespectQuoteFreshnessBoundaries(
+            String caseId,
             long offsetSeconds,
             boolean accepted
     ) {

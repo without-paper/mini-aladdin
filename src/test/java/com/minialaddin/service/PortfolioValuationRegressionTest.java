@@ -8,6 +8,7 @@ import com.minialaddin.model.Trade;
 import com.minialaddin.model.TradeSide;
 import com.minialaddin.model.MarketPrice;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -18,6 +19,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@Tag("R3")
 class PortfolioValuationRegressionTest {
 
     private final PortfolioCalculationService positionCalculator =

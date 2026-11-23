@@ -4,6 +4,7 @@ package com.minialaddin.service;
 import com.minialaddin.dto.PortfolioValuationResponse;
 import com.minialaddin.model.*;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -14,6 +15,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@Tag("R3")
 class PortfolioValuationRoundingRegressionTest {
 
     @Test

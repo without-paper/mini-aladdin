@@ -8,6 +8,7 @@ import com.minialaddin.repository.PortfolioRepository;
 import com.minialaddin.repository.TradeRepository;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.*;
  * unnoticed. Each case below breaks exactly one invariant by one cent,
  * the same magnitude as D-02, and checks that the matching check fires.
  */
+@Tag("R3")
 class PortfolioValuationServiceInvariantTest {
 
     private static final Long PORTFOLIO_ID = 1L;

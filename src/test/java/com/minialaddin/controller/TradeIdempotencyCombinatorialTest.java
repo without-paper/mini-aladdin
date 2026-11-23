@@ -6,6 +6,8 @@ import com.minialaddin.model.Portfolio;
 import com.minialaddin.repository.TradeRepository;
 import com.minialaddin.service.PortfolioService;
 
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -20,10 +22,13 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
 
+import static com.minialaddin.support.MoneyMatchers.money;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@Tag("R2")
+@Tag("integration")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestDatabaseConfiguration.class)
@@ -78,7 +83,7 @@ class TradeIdempotencyCombinatorialTest {
     }
 
     @ParameterizedTest(
-            name = "{index}: portfolio={0}, key={1}, payload={2}"
+            name = "CP-{index}: portfolio={0}, key={1}, payload={2}"
     )
     @CsvSource({
             "A, reused, identical, 200, 1, 0",
@@ -160,6 +165,12 @@ class TradeIdempotencyCombinatorialTest {
             result.andExpect(
                     jsonPath("$.status").value(409)
             );
+            result.andExpect(
+                    jsonPath("$.detail").value(
+                            "Idempotency-Key was already used "
+                                    + "with a different request"
+                    )
+            );
         } else {
             // A new trade is executed
             result.andExpect(
@@ -201,19 +212,20 @@ class TradeIdempotencyCombinatorialTest {
                         portfolioA.getId()
                 ))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.availableCash")
-                        .value((double) expectedCashA));
+                .andExpect(jsonPath("$.availableCash",
+                        money(expectedCashA + ".00")));
 
         mockMvc.perform(get(
                         "/api/portfolios/{id}/cash",
                         portfolioB.getId()
                 ))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.availableCash")
-                        .value((double) expectedCashB));
+                .andExpect(jsonPath("$.availableCash",
+                        money(expectedCashB + ".00")));
     }
 
     @Test
+    @DisplayName("CP-E1: a malformed Idempotency-Key is rejected with 400")
     void shouldRejectInvalidIdempotencyKey()
             throws Exception {
 

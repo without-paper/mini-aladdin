@@ -2,6 +2,7 @@
 package com.minialaddin.config;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import org.slf4j.MDC;
@@ -18,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@Tag("R8")
 class CorrelationIdFilterTest {
 
     private MockMvc mockMvc;
@@ -112,6 +114,41 @@ class CorrelationIdFilterTest {
         assertEquals(
                 returnedId,
                 UUID.fromString(returnedId).toString()
+        );
+    }
+
+    @Test
+    void shouldReplaceNonCanonicalUppercaseUuid()
+            throws Exception {
+
+        // A valid UUID, but not in canonical lower-case form.
+        String uppercase = UUID.randomUUID()
+                .toString()
+                .toUpperCase();
+
+        var result = mockMvc.perform(
+                        get("/test-correlation")
+                                .header("X-Correlation-ID", uppercase)
+                )
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String returnedId = result.getResponse()
+                .getHeader("X-Correlation-ID");
+
+        assertNotNull(returnedId);
+
+        // The filter accepts only canonical IDs, so the incoming value
+        // is replaced rather than echoed or merely lower-cased.
+        assertNotEquals(uppercase, returnedId);
+        assertNotEquals(uppercase.toLowerCase(), returnedId);
+        assertEquals(
+                returnedId,
+                UUID.fromString(returnedId).toString()
+        );
+        assertEquals(
+                returnedId,
+                result.getResponse().getContentAsString()
         );
     }
 

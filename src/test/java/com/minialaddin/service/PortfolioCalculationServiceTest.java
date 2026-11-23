@@ -7,6 +7,7 @@ import com.minialaddin.model.Trade;
 import com.minialaddin.model.TradeSide;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -14,6 +15,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("R1")
 class PortfolioCalculationServiceTest {
 
     private PortfolioCalculationService calculator;
@@ -140,13 +142,15 @@ class PortfolioCalculationServiceTest {
                 trade("AAPL", TradeSide.SELL, "10", "200.00")
         );
 
-        assertThrows(
+        IllegalStateException ex = assertThrows(
                 IllegalStateException.class,
                 () -> calculator.calculate(
                         new BigDecimal("10000.00"),
                         trades
                 )
         );
+
+        assertEquals("Negative position for AAPL", ex.getMessage());
     }
 
     @Test
@@ -156,12 +160,14 @@ class PortfolioCalculationServiceTest {
                 trade("AAPL", TradeSide.BUY, "100", "200.00")
         );
 
-        assertThrows(
+        IllegalStateException ex = assertThrows(
                 IllegalStateException.class,
                 () -> calculator.calculate(
                         new BigDecimal("10000.00"),
                         trades
                 )
         );
+
+        assertEquals("Calculated cash balance is negative", ex.getMessage());
     }
 }

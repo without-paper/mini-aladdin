@@ -6,6 +6,7 @@ import com.minialaddin.exception.MissingMarketPriceException;
 import com.minialaddin.model.*;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -18,6 +19,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@Tag("R3")
 class PortfolioValuationCalculatorTest {
 
     private PortfolioValuationCalculator calculator;
@@ -159,7 +161,7 @@ class PortfolioValuationCalculatorTest {
                 trade("AAPL", TradeSide.SELL, "5", "200.00")
         );
 
-        assertThrows(
+        IllegalStateException ex = assertThrows(
                 IllegalStateException.class,
                 () -> calculator.calculate(
                         1L,
@@ -168,6 +170,11 @@ class PortfolioValuationCalculatorTest {
                         trades,
                         Map.of()
                 )
+        );
+
+        assertEquals(
+                "Insufficient historical position: AAPL",
+                ex.getMessage()
         );
     }
 
