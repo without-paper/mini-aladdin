@@ -1,5 +1,7 @@
 # LO4 — Evaluation of Testing Limitations
 
+> **Status:** written at the 97-test LO3-E stage (17 November 2026). Its proposals were acted on in the [LO4 follow-up](LO4-follow-up.md) (121 tests) and the later test-code review (135 tests). The figures below are kept unchanged as the record of that stage.
+
 ## 1. Evaluation Scope
 
 This evaluation compares the requirements in [LO1](LO1-requirements.md), the plan in [LO2](LO2-test-plan.md), and the executed tests and measurements in [LO3](LO3-test-results.md). Two requirements receive detailed attention: R3 (financial valuation correctness) and R7 (valuation response time). These illustrate different limitations of functional and measurable-attribute testing. Other significant gaps are assessed using JaCoCo and PIT evidence.

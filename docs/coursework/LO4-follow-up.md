@@ -1,6 +1,6 @@
 # LO4 Follow-up — Acting on Coverage, Mutation and Performance Evidence
 
-[LO4 evaluation](LO4-evaluation.md) identified uncovered branches, four unexplained PIT survivors and an unexplained R7 latency outlier, but left them as proposals. This document records the follow-up: the missed branches are classified (LO4.3), targets are set for the P0 classes (LO4.2), new tests close the genuine gaps (LO4.4), and the R7 data is analysed statistically.
+[LO4 evaluation](LO4-evaluation.md) identified uncovered branches, four unexplained PIT survivors and an unexplained R7 latency outlier, but left them as proposals. This document records the follow-up: the missed branches are classified (LO4.3), targets are set for the P0 classes (LO4.2), new tests close the genuine gaps (LO4.4), and the R7 data is analysed statistically. Sections 6 and 7 record a later review of the test code itself and the resulting 135-test coverage.
 
 ## 1. Classification of the 57 missed branches (JaCoCo, 97-test suite)
 
@@ -75,7 +75,7 @@ A review of the test code itself, rather than of its coverage numbers, found gap
 
 | # | Gap found | Change | Requirement |
 |---|---|---|---|
-| G1 | The concurrency test started two threads from a latch, but nothing forced them to overlap; one request could finish before the other started, and the test would still pass through the ordinary replay path | New `PortfolioLockGate` holds the portfolio row lock until PostgreSQL (`pg_stat_activity`) reports both requests blocked on it; `TradeIdempotencyConcurrencyIntegrationTest` (R5-C2) now uses it | R2, R5 |
+| G1 | The concurrency test started two threads from a latch, but nothing forced them to overlap; one request could finish before the other started, and the test would still pass through the ordinary replay path | New `PortfolioLockGate` holds the portfolio row lock in a separate transaction until `pg_stat_activity` shows two sessions waiting on a lock, then releases it (see *Limits* below); `TradeIdempotencyConcurrencyIntegrationTest` (R5-C2) now uses it | R2, R5 |
 | G2 | No test raced two *different* trades that are each affordable but not together | `TradeConcurrentOverspendIntegrationTest` (R5-C1): 2 × 600.00 against 1,000.00 under the gate; exactly one executes, one is rejected, cash is 400.00 | R1, R5 |
 | G3 | The snapshot test read `market_prices` through `JdbcTemplate`, so it checked PostgreSQL, not `PortfolioValuationService` | Javadoc now states that scope; new `PortfolioValuationConsistencyIntegrationTest` (R5-S1) commits a trade and a price *inside* a real valuation (via a spy) and checks that the result uses the old snapshot and REPEATABLE_READ | R3, R5 |
 | G4 | The rollback test asserted only "some `IllegalStateException`", so a failure before the insert would also pass | It now checks the exception message, that the trade was visible inside the transaction, and that the after-commit `executed` metric did not move | R5, R8 |
@@ -83,10 +83,31 @@ A review of the test code itself, rather than of its coverage numbers, found gap
 | G6 | Money in JSON was compared as `double` (`value(7160.00)`), which cannot see whether the API returned two decimals | `MoneyMatchers.money()` compares as `BigDecimal`; `assertMoneyField()` checks the raw JSON text (e.g. `7160.00`) | R3 |
 | G7 | Valuation integration tests shared the global `AAPL`/`MSFT` quotes, so one test could overwrite another's price | Random symbols per test | R3, R4 |
 | G8 | Three exception tests checked only the type, so the wrong guard could fire unnoticed | They now assert the exact message (`Negative position for AAPL`, `Calculated cash balance is negative`, `Insufficient historical position: AAPL`) | R1, R3 |
-| G9 | Untested paths: `GET /trades` and its 404; the 0.00 / 0.01 price boundary; both guards in `TransactionalTradeMetrics`; a non-canonical (upper-case) correlation ID; correlation IDs in the application's log lines | `TradeControllerTest` (2), `MarketPriceServiceTest` MP-B1–MP-B3 (3), `TransactionalTradeMetricsTest` (2), `CorrelationIdFilterTest` (1), `CorrelationIdLoggingIntegrationTest` (1, `OutputCaptureExtension`) | R1, R4, R6, R8 |
+| G9 | Paths no Java test exercised: `GET /trades` (called only by the CI smoke script) and its 404; the 0.00 / 0.01 price boundary; both guards in `TransactionalTradeMetrics`; a non-canonical (upper-case) correlation ID; correlation IDs in the application's log lines | `TradeControllerTest` (2), `MarketPriceServiceTest` MP-B1–MP-B3 (3), `TransactionalTradeMetricsTest` (2), `CorrelationIdFilterTest` (1), `CorrelationIdLoggingIntegrationTest` (1, `OutputCaptureExtension`) | R1, R4, R6, R8 |
 | G10 | 409 tests checked only the status, not which conflict occurred | Combinatorial and state-machine tests also assert the conflict `detail` | R2 |
 | G11 | No link from a test to its requirement or design ID | `@Tag` per requirement plus `integration`; parameterised cases named FT-xx / CP-xx (see [LO3 results §6](LO3-test-results.md#6-requirement-traceability-junit-tags)) | all |
 
-**Result.** 14 new test cases (121 → 135); evidence: [135-test `mvnw clean verify` run](LO4-follow-up-2-test-run.txt). PIT was not re-run: its scope and configuration are unchanged, and the calculator tests only gained one message assertion, so the 23/23 result in §5 is not expected to change.
+**Result.** 14 new test cases (121 → 135 tests) and stronger assertions in existing tests. Evidence: the [135-test `mvnw clean verify` run](LO4-follow-up-2-test-run.txt#L6095) and [CI run #41](https://github.com/without-paper/mini-aladdin/actions/runs/45089342461), both on commit `4ab1008`.
 
-**Limits.** The lock gate makes the "both requests queued" schedule deterministic, but it is still only one interleaving; it does not explore the schedule space. Log assertions depend on the configured logstash console format. The JaCoCo figures in §5 are from the 121-test run and are not updated here.
+**PIT.** PIT was not re-run for this stage, because a re-run could not change the result. `PortfolioValuationCalculator` has not changed since the D-02 fix (`1a6d0c1`), which predates the 23/23 report in §5, so the same 23 mutants would be generated. The three PIT target test classes only gained `@Tag` annotations and one exception-message assertion, and the PIT configuration has no tag filter. Adding an assertion to a test cannot make a previously killed mutant survive. The 23/23 result therefore remains valid historical evidence for this mutant set; it is not presented as a new execution.
+
+**Limits.** `PortfolioLockGate` counts sessions whose `wait_event_type` is `Lock`; it does not identify which sessions they are. This is adequate here: the test database belongs to the test's Spring context, test classes run one at a time, and the only query that can wait during these tests is the portfolio row-lock query (`findByIdForUpdate`) issued by the two requests. If the requests never block, the gate times out and the test fails instead of passing silently. A stricter check with `pg_blocking_pids()` was considered but not adopted: PostgreSQL normally queues the second request behind the first (on the row's tuple lock) rather than directly behind the gate, so a correct check would need a recursive blocking-chain query, adding complexity for little gain in this isolated environment. The gate forces one schedule (both requests queued behind the lock); it does not explore other interleavings. Log assertions depend on the configured logstash console format.
+
+## 7. Updated Structural Coverage (135-test Suite)
+
+Following the second test-code review, the full 135-test suite was executed using JaCoCo 0.8.16.
+
+All 135 tests passed with no failures, errors or skips. The new coverage report is preserved separately from the earlier 97-test baseline and 121-test follow-up.
+
+| Measure | 97 tests (LO3-E) | 121 tests (§5) | 135 tests |
+|---|---:|---:|---:|
+| Line coverage | 574/615 (93.3%) | 587/615 (95.4%) | 591/615 (96.1%) |
+| Branch coverage | 123/180 (68.3%) | 133/180 (73.9%) | 136/180 (75.6%) |
+
+**Evidence:** [135-test execution log](LO4-follow-up-2-test-run.txt), [updated JaCoCo CSV](LO4-follow-up-2-jacoco.csv), and [updated JaCoCo XML](LO4-follow-up-2-jacoco.xml). The CSV and XML come from a repeat `mvnw clean verify` of the same commit (`4ab1008`; JaCoCo session started 23 November 2026, 01:01 UTC), which again ran 135 tests with no failures, errors or skips.
+
+The additional tests primarily strengthen test oracles, concurrency control and integration-level behaviour. Any coverage change must be interpreted in that context rather than treated as the primary measure of test quality.
+
+From 121 to 135 tests, coverage rose by only 4 lines and 3 branches. Comparing the 97-test and 135-test CSVs with the class figures in §5, the newly covered code is both guards in `TransactionalTradeMetrics` (2 lines, 2 branches), the non-canonical-ID branch in `CorrelationIdFilter` (1 line, 1 branch) and the `GET /trades` path in `TradeController` (1 line). Most of the review's changes strengthened assertions on code that was already executed, which coverage cannot show.
+
+The P0 classes are unchanged from §5, as the 135-test XML confirms line by line: `TradeService` 37/52 branches (the same 13 defensive duplicates and 2 impossible cases), `PortfolioValuationCalculator` 29/34 (the five persisted-data checks on line 57) and `PortfolioValuationService` 6/6.

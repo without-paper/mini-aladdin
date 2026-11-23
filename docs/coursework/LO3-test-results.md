@@ -11,7 +11,7 @@
 | LO3-D, post-fix | Regression and PostgreSQL API integration tests | 97 | 0 | 0 | 0 |
 | LO3-E | JaCoCo-instrumented full regression verification | 97 | 0 | 0 | 0 |
 | LO4 follow-up | SELL-history, boundary, invariant and HTTP 500 contract tests ([details](LO4-follow-up.md)) | 121 | 0 | 0 | 0 |
-| Test-code review | Deterministic lock-contention, API stale-quote, log-correlation, trade-history and price-boundary tests; existing oracles strengthened ([details](LO4-follow-up.md#6-second-follow-up-test-code-review)) | 135 | 0 | 0 | 0 |
+| Test-code review | Lock-controlled concurrency, API stale-quote, log-correlation, trade-history and price-boundary tests; existing oracles strengthened ([details](LO4-follow-up.md#6-second-follow-up-test-code-review)) | 135 | 0 | 0 | 0 |
 
 LO3-D also produced **two intentionally recorded pre-fix failures**: a unit reconciliation test (`expected: <0> but was: <-1>`) and an API integration test (HTTP 500 instead of 200). These are the evidence of defect D-02, not successful runs. Both tests passed after the production fix, and the complete post-fix regression suite passed.
 
@@ -46,6 +46,8 @@ The unexecuted conditions, particularly in `TradeService`, limit the assurance p
 
 **Evidence:** [LO3-E-jacoco-test-run.txt](LO3-E-jacoco-test-run.txt), [LO3-E-jacoco.csv](LO3-E-jacoco.csv).
 
+**Later stages.** The figures above remain the LO3-E baseline. The same JaCoCo configuration later measured 587/615 lines (95.4%) and 133/180 branches (73.9%) after the LO4 follow-up (121 tests; [LO4 follow-up §5](LO4-follow-up.md#5-results-after-the-actions)), and 591/615 lines (96.1%) and 136/180 branches (75.6%) after the test-code review (135 tests; [LO4 follow-up §7](LO4-follow-up.md#7-updated-structural-coverage-135-test-suite)).
+
 ## 4. Fault-based / Mutation Testing (LO3-E)
 
 PIT 1.30.2 was restricted to **one production class**, `PortfolioValuationCalculator`, using three calculator-focused test classes.
@@ -64,14 +66,16 @@ PIT 1.30.2 was restricted to **one production class**, `PortfolioValuationCalcul
 
 All four surviving mutants came from boundary-operator mutations. Their exact locations and equivalence status have not yet been assessed; they are potential test-design gaps, **not confirmed production defects**. The PIT mutation score must not be described as project-wide because the experiment mutated one class.
 
-**Evidence:** [LO3-E PIT baseline log](LO3-E-pitest-run.txt).
-The detailed [PIT report](pit-reports/index.html) and
-[`mutations.xml`](pit-reports/mutations.xml) have been committed.
+**Evidence:** [LO3-E PIT baseline log](LO3-E-pitest-run.txt) (19/23).
 
 The initial four surviving boundary mutants were subsequently
 killed by targeted tests, increasing mutation coverage from
 19/23 to 23/23 in the same calculator scope.
-See [LO4 follow-up](LO4-follow-up.md).
+See [LO4 follow-up](LO4-follow-up.md). The committed
+[PIT report](pit-reports/index.html) and
+[`mutations.xml`](pit-reports/mutations.xml) are from this later
+23/23 run. PIT was not re-run for the 135-test stage; the reasons are
+given in [LO4 follow-up §6](LO4-follow-up.md#6-second-follow-up-test-code-review).
 
 ## 5. Findings and Defect Yield
 
@@ -124,4 +128,7 @@ Counts overlap because a class can check more than one requirement. The 85 tests
 - [Detailed LO3 test design](LO3-test-design.md)
 - [LO4 follow-up: branch classification, new tests, results](LO4-follow-up.md)
 - [R7 statistical analysis](LO4-R7-statistics.txt) (script: `performance/r7_statistics.py`)
+- [LO4 follow-up: 121-test run](LO4-follow-up-test-run.txt)
 - [Test-code review: 135-test run](LO4-follow-up-2-test-run.txt)
+- [Test-code review: 135-test JaCoCo CSV](LO4-follow-up-2-jacoco.csv) and [XML](LO4-follow-up-2-jacoco.xml)
+- [Latest verified CI run (#41, commit `4ab1008`)](https://github.com/without-paper/mini-aladdin/actions/runs/45089342461)

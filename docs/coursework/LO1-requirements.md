@@ -53,7 +53,7 @@ R7 is a proposed coursework requirement, rather than an existing production serv
 
 ## 5. Appropriateness and Limitations
 
-Specification-based partitioning provides systematic coverage of important input classes and financial boundaries for R1 and R4. Category-partition and model-based approaches complement this by considering interactions and sequences for R2 and R3. JaCoCo structural analysis found 57 uncovered branches among 180 identified across the application. These results complement specification-based tests by exposing implementation-level coverage gaps; see [LO3 test results](LO3-test-results.md).
+Specification-based partitioning provides systematic coverage of important input classes and financial boundaries for R1 and R4. Category-partition and model-based approaches complement this by considering interactions and sequences for R2 and R3. At the 97-test LO3-E stage, JaCoCo structural analysis found 57 uncovered branches among 180 identified across the application (later stages are recorded in LO3 results §3). These results complement specification-based tests by exposing implementation-level coverage gaps; see [LO3 test results](LO3-test-results.md).
 
 Mocked unit tests provide efficient and repeatable feedback, but cannot establish database transaction or locking behaviour. PostgreSQL integration tests are therefore necessary for R2 and R5. Even these tests cannot exhaust all concurrent execution schedules.
 

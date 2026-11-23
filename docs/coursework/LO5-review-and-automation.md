@@ -64,7 +64,7 @@ The workflow uses Maven dependency caching, read-only repository permissions, co
 
 Automated checks include JUnit unit tests, parameterised boundary and combinatorial tests, MockMvc API tests, PostgreSQL integration tests, regression tests and JaCoCo coverage collection.
 
-The current 121-test suite provides automated regression feedback across the selected requirements, expanded from the earlier 97-test baseline through LO4 follow-up testing. JaCoCo reports execution coverage during Maven verification. Separately, the automated deployment smoke test checks customer-critical operations through the HTTP interface of the built container, rather than testing only inside the JVM.
+The current 135-test suite provides automated regression feedback across the selected requirements, expanded from the original 69-test baseline through specification-based testing, regression testing and two LO4 follow-up stages. JaCoCo reports execution coverage during Maven verification. Separately, the automated deployment smoke test checks customer-critical operations through the HTTP interface of the built container, rather than testing only inside the JVM.
 
 PIT mutation testing and the R7 performance benchmark are separate experiments; they are not currently mandatory CI jobs.
 
@@ -86,7 +86,7 @@ The workflow does not currently perform production deployment, security testing,
 
 ### 4.1 Post-build Smoke Gate and Controlled Recovery
 
-An initial integration attempt failed because Buildx had produced the Docker image without loading it into the runner ([failed CI run](https://github.com/without-paper/mini-aladdin/actions/runs/44584149919)). Moving `load: true` to the build-push action fixed this pipeline integration error. The [successful smoke CI run](https://github.com/without-paper/mini-aladdin/actions/runs/44586139842) passed all 121 Java tests and the end-to-end checks. A [later successful run](https://github.com/without-paper/mini-aladdin/actions/runs/44589827668) confirmed the gate remained operational.
+An initial integration attempt failed because Buildx had produced the Docker image without loading it into the runner ([failed CI run](https://github.com/without-paper/mini-aladdin/actions/runs/44584149919)). Moving `load: true` to the build-push action fixed this pipeline integration error. The [successful smoke CI run](https://github.com/without-paper/mini-aladdin/actions/runs/44586139842) passed all 121 Java tests and the end-to-end checks. A [later successful run](https://github.com/without-paper/mini-aladdin/actions/runs/44589827668) confirmed the gate remained operational. The latest verified execution, [CI run #41](https://github.com/without-paper/mini-aladdin/actions/runs/45089342461) on commit `4ab1008`, completed both jobs successfully: Maven verification of the 135-test suite, then the Docker image build and isolated smoke test.
 
 The deployed-container smoke check exercises the real HTTP endpoint and a fresh database, which a passing unit suite or image build alone does not establish. A failed candidate CI run does not stop an existing deployment because this workflow performs no production deployment.
 
