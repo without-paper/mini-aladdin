@@ -40,8 +40,9 @@ import static org.junit.jupiter.api.Assertions.*;
  * 1,000.00 of cash: either is affordable alone, both together are not.
  * Without the PESSIMISTIC_WRITE portfolio lock, both could read the same
  * history, both pass the cash check and overspend the portfolio.
- * {@link PortfolioLockGate} guarantees that both requests are queued on
- * the lock before either proceeds.
+ * {@link PortfolioLockGate} keeps the lock until two sessions are waiting
+ * on a lock, so both requests are queued before either proceeds (see its
+ * Javadoc for the isolation assumption this relies on).
  */
 @Tag("R1")
 @Tag("R5")

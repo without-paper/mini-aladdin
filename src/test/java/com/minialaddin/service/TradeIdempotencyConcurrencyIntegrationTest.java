@@ -38,8 +38,9 @@ import static org.junit.jupiter.api.Assertions.*;
  * guarantee that they overlap: if one finished before the other began, the
  * test passed through the ordinary replay path without exercising the row
  * lock. {@link PortfolioLockGate} now holds the portfolio lock until
- * PostgreSQL reports both requests blocked on it, so every run exercises
- * the contended schedule.
+ * PostgreSQL reports two sessions waiting on a lock (in the isolated test
+ * database, the two requests), so every run exercises this contended
+ * schedule.
  */
 @Tag("R2")
 @Tag("R5")

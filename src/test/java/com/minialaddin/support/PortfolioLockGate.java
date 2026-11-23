@@ -14,15 +14,22 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Scaffolding for deterministic contention on a portfolio row lock (R5).
+ * Scaffolding for controlled contention on a portfolio row lock (R5).
  *
  * A latch alone only makes two requests start at roughly the same time;
  * if one finishes before the other begins, a concurrency test passes
  * without exercising the lock at all. This gate instead holds the same
  * PESSIMISTIC_WRITE lock that {@code TradeService} takes, waits until
- * PostgreSQL reports that the expected number of sessions are blocked
- * on it, and only then releases it. Every run therefore exercises the
- * "both requests queued on the lock" schedule.
+ * PostgreSQL reports the expected number of sessions waiting on a lock
+ * ({@code pg_stat_activity}, {@code wait_event_type = 'Lock'}), and only
+ * then releases it.
+ *
+ * The query does not identify which sessions are waiting or on which lock.
+ * It relies on the test database being isolated, so that the only sessions
+ * able to wait are the requests under test. Under that assumption every run
+ * exercises the "both requests queued on the lock" schedule; other
+ * interleavings are not explored. If the requests never block, the gate
+ * times out and the test fails.
  */
 public final class PortfolioLockGate implements AutoCloseable {
 
