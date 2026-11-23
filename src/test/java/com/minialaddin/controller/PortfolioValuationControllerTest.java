@@ -291,4 +291,90 @@ class PortfolioValuationControllerTest {
                                 + symbol
                 ));
     }
+
+    @Test
+    @DisplayName("R4-V8: one stale price among fresh ones blocks the whole valuation until it is refreshed")
+    void shouldRejectValuationWhenOnlyOnePriceIsStale() throws Exception {
+
+        // Two open positions; the stale one sorts second, so a valuation
+        // that only checked the first position would wrongly succeed.
+        String fresh = randomSymbol("PA");
+        String stale = randomSymbol("PB");
+
+        Portfolio portfolio = portfolioService.createPortfolio(
+                "Partly Stale Fund",
+                new BigDecimal("10000.00")
+        );
+
+        Long id = portfolio.getId();
+
+        trade(id, fresh, TradeSide.BUY, "5", "100.00");
+        trade(id, stale, TradeSide.BUY, "2", "100.00");
+
+        marketPriceService.updatePrice(fresh, new BigDecimal("120.00"));
+        marketPriceService.updatePrice(stale, new BigDecimal("110.00"));
+        shiftQuoteTime(stale, "-25 hours");
+
+        // A partly valid price set must not yield a partly valid result.
+        mockMvc.perform(get("/api/portfolios/{id}/valuation", id))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value(
+                        "Market price is stale or has an invalid timestamp: "
+                                + stale
+                ));
+
+        // Refreshing the one bad price is enough to recover.
+        marketPriceService.updatePrice(stale, new BigDecimal("110.00"));
+
+        // Independent oracle: cash 10000 - 500 - 200 = 9300.00;
+        // market value 5 x 120 + 2 x 110 = 820.00.
+        mockMvc.perform(get("/api/portfolios/{id}/valuation", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.positions.length()").value(2))
+                .andExpect(jsonPath("$.availableCash", money("9300.00")))
+                .andExpect(jsonPath("$.marketValue", money("820.00")))
+                .andExpect(jsonPath("$.totalValue", money("10120.00")));
+    }
+
+    @Test
+    @DisplayName("R4-V9: only open positions need a price; the missing price of an open position is named")
+    void shouldRequirePricesForOpenPositionsOnly() throws Exception {
+
+        // The closed symbol sorts first and never gets a price. If closed
+        // positions wrongly needed one, the error would name it instead.
+        String closed = randomSymbol("QA");
+        String open = randomSymbol("QB");
+
+        Portfolio portfolio = portfolioService.createPortfolio(
+                "Open Positions Only Fund",
+                new BigDecimal("10000.00")
+        );
+
+        Long id = portfolio.getId();
+
+        trade(id, closed, TradeSide.BUY, "3", "100.00");
+        trade(id, closed, TradeSide.SELL, "3", "120.00");
+        trade(id, open, TradeSide.BUY, "4", "50.00");
+
+        mockMvc.perform(get("/api/portfolios/{id}/valuation", id))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value(
+                        "Missing market price for " + open
+                ));
+
+        marketPriceService.updatePrice(open, new BigDecimal("55.00"));
+
+        // Independent oracle: cash 10000 - 300 + 360 - 200 = 9860.00;
+        // realised (120 - 100) x 3 = 60.00; unrealised (55 - 50) x 4 = 20.00.
+        mockMvc.perform(get("/api/portfolios/{id}/valuation", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.positions.length()").value(1))
+                .andExpect(jsonPath("$.positions[0].symbol").value(open))
+                .andExpect(jsonPath("$.availableCash", money("9860.00")))
+                .andExpect(jsonPath("$.marketValue", money("220.00")))
+                .andExpect(jsonPath("$.realisedPnl", money("60.00")))
+                .andExpect(jsonPath("$.unrealisedPnl", money("20.00")))
+                .andExpect(jsonPath("$.totalPnl", money("80.00")))
+                .andExpect(jsonPath("$.totalValue", money("10080.00")));
+    }
 }

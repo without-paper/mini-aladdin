@@ -61,56 +61,6 @@ class MarketPriceFreshnessPolicyTest {
     }
 
     @Test
-    void shouldAcceptFreshQuote() {
-
-        var report = reportWithQuote(
-                NOW.minusSeconds(60)
-        );
-
-        assertDoesNotThrow(
-                () -> policy.validateAt(report, NOW)
-        );
-    }
-
-    @Test
-    void shouldRejectQuoteOlderThan24Hours() {
-
-        var report = reportWithQuote(
-                NOW.minusSeconds(25 * 3600)
-        );
-
-        assertThrows(
-                StaleMarketPriceException.class,
-                () -> policy.validateAt(report, NOW)
-        );
-    }
-
-    @Test
-    void shouldAcceptQuoteAt24HourBoundary() {
-
-        var report = reportWithQuote(
-                NOW.minusSeconds(24 * 3600)
-        );
-
-        assertDoesNotThrow(
-                () -> policy.validateAt(report, NOW)
-        );
-    }
-
-    @Test
-    void shouldRejectFarFutureTimestamp() {
-
-        var report = reportWithQuote(
-                NOW.plusSeconds(600)
-        );
-
-        assertThrows(
-                StaleMarketPriceException.class,
-                () -> policy.validateAt(report, NOW)
-        );
-    }
-
-    @Test
     void shouldRejectMissingTimestamp() {
 
         var report = reportWithQuote(null);

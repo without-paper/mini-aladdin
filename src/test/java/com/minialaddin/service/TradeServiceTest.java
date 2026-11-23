@@ -99,112 +99,6 @@ class TradeServiceTest {
     }
 
 
-    @Test
-    void shouldAllowBuyWithEnoughCash() {
-        Portfolio portfolio = new Portfolio(
-                "Test Fund",
-                new BigDecimal("10000.00")
-        );
-
-        when(portfolioRepository.findByIdForUpdate(1L))
-                .thenReturn(Optional.of(portfolio));
-
-        when(tradeRepository
-                .findByPortfolioIdOrderByExecutedAtAscIdAsc(1L))
-                .thenReturn(List.of());
-
-        when(tradeRepository.saveAndFlush(any(Trade.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
-
-        CreateTradeRequest request = new CreateTradeRequest(
-                "AAPL",
-                TradeSide.BUY,
-                new BigDecimal("10"),
-                new BigDecimal("200.00")
-        );
-
-        TradeExecutionResult result = service.executeTrade(
-                1L,
-                request,
-                "test-trade-0001"
-        );
-
-        assertEquals("AAPL", result.trade().symbol());
-        assertFalse(result.replayed());
-
-        verify(tradeRepository).saveAndFlush(any(Trade.class));
-    }
-
-    @Test
-    void shouldRejectBuyWhenCashInsufficient() {
-        Portfolio portfolio = new Portfolio(
-                "Test Fund",
-                new BigDecimal("1000.00")
-        );
-
-        when(portfolioRepository.findByIdForUpdate(1L))
-                .thenReturn(Optional.of(portfolio));
-
-        when(tradeRepository
-                .findByPortfolioIdOrderByExecutedAtAscIdAsc(1L))
-                .thenReturn(List.of());
-
-        CreateTradeRequest request = new CreateTradeRequest(
-                "AAPL",
-                TradeSide.BUY,
-                new BigDecimal("10"),
-                new BigDecimal("200.00")
-        );
-
-        assertThrows(
-                TradeRejectedException.class,
-                () -> service.executeTrade(1L, request, "test-trade-0001")
-        );
-
-        verify(tradeRepository, never())
-                .saveAndFlush(any(Trade.class));
-    }
-
-    @Test
-    void shouldRejectSellWhenPositionInsufficient() {
-        Portfolio portfolio = new Portfolio(
-                "Test Fund",
-                new BigDecimal("10000.00")
-        );
-
-        Trade previousBuy = new Trade(
-                portfolio,
-                "AAPL",
-                TradeSide.BUY,
-                new BigDecimal("5"),
-                new BigDecimal("200.00")
-        );
-
-        when(portfolioRepository.findByIdForUpdate(1L))
-                .thenReturn(Optional.of(portfolio));
-
-        when(tradeRepository
-                .findByPortfolioIdOrderByExecutedAtAscIdAsc(1L))
-                .thenReturn(List.of(previousBuy));
-
-        CreateTradeRequest request = new CreateTradeRequest(
-                "AAPL",
-                TradeSide.SELL,
-                new BigDecimal("10"),
-                new BigDecimal("220.00")
-        );
-
-        assertThrows(
-                TradeRejectedException.class,
-                () -> service.executeTrade(1L, request, "test-trade-0001")
-        );
-
-        verify(tradeRepository, never())
-                .saveAndFlush(any(Trade.class));
-    }
-
-
-
     @ParameterizedTest(name = "{0}: BUY 10 @ 100.00 with cash={1}, accepted={2}")
     @CsvSource({
             "FT-01, 999.99, false",
@@ -255,7 +149,7 @@ class TradeServiceTest {
                     .saveAndFlush(any(Trade.class));
 
         } else {
-            assertThrows(
+            TradeRejectedException ex = assertThrows(
                     TradeRejectedException.class,
                     () -> service.executeTrade(
                             1L,
@@ -263,6 +157,9 @@ class TradeServiceTest {
                             "buy-boundary-0001"
                     )
             );
+
+            // Rejected for the cash rule, not for some other reason.
+            assertEquals("Insufficient cash", ex.getMessage());
 
             verify(tradeRepository, never())
                     .saveAndFlush(any(Trade.class));
@@ -333,7 +230,7 @@ class TradeServiceTest {
                     .saveAndFlush(any(Trade.class));
 
         } else {
-            assertThrows(
+            TradeRejectedException ex = assertThrows(
                     TradeRejectedException.class,
                     () -> service.executeTrade(
                             1L,
@@ -341,6 +238,9 @@ class TradeServiceTest {
                             "sell-boundary-0001"
                     )
             );
+
+            // Rejected for the holding rule, not for some other reason.
+            assertEquals("Insufficient position", ex.getMessage());
 
             verify(tradeRepository, never())
                     .saveAndFlush(any(Trade.class));

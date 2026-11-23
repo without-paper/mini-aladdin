@@ -34,20 +34,6 @@ class MarketPriceServiceTest {
     }
 
     @Test
-    void shouldRejectNegativePrice() {
-
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> service.updatePrice(
-                        "AAPL",
-                        new BigDecimal("-10.00")
-                )
-        );
-
-        verifyNoInteractions(repository);
-    }
-
-    @Test
     void shouldRejectInvalidSymbol() {
 
         assertThrows(

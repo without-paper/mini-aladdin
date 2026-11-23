@@ -109,6 +109,9 @@ jobs:
       - name: Smoke test deployed application
         run: bash scripts/ci-smoke.sh
 
+      - name: Database failure and recovery check
+        run: bash scripts/ci-recovery.sh
+
       - name: Show container logs on failure
         if: failure()
         run: |
