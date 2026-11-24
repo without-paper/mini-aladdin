@@ -109,7 +109,7 @@ The original trade must already be committed before each test frame. The second 
 
 The twelve normal-domain test frames specify the expected HTTP result and database state. Matching requests using an existing key in the original portfolio must replay the trade. A conflicting request in that portfolio must return HTTP 409. All requests using a new key within the target portfolio must create a new trade.
 
-An additional error choice tests a malformed idempotency key. The existing tests for a missing key provide complementary input-validation evidence.
+An additional error choice tests a malformed idempotency key. The existing tests for a missing key provide complementary input-validation evidence. Key-length boundaries (7, 8, 128 and 129 characters) were added later as BV-K1–BV-K4 ([LO4 follow-up §8](LO4-follow-up.md#8-third-follow-up-requirement-driven-test-review-137-tests)).
 
 ### 3.4 Implementation and Evaluation Criteria
 
@@ -404,7 +404,7 @@ The benchmark measured client-observed HTTP latency, including client processing
 
 ### 7.6 Evidence
 
-- `LO3-F-r7-run.txt` — console execution log.
+- `LO3-F-r7-run.txt` — console summary of the three runs.
 - `r7-F1F66185-raw.csv` — individual request latencies and statuses.
 - `r7-F1F66185-summary.csv` — per-run statistics.
 - `r7-F1F66185-environment.json` — configuration and environment metadata.

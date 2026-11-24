@@ -144,7 +144,7 @@ The included `MarketPriceFreshnessPolicy` source **does** establish its exact ru
 | Bean Validation (invalid request DTO) | `400`, with an `errors` array |
 | Unexpected exceptions | `500` with a generic message |
 
-Error bodies use `application/problem+json` with `type`, `title`, `status`, `detail`, `instance`, and a conditional `correlationId` extension. `CorrelationIdFilter` supplies the per-request MDC value (per prior implementation); its source is not in the supplied review. Spring MVC exception handling does not automatically cover every failure in filters or the servlet container.
+Error bodies use `application/problem+json` with `type`, `title`, `status`, `detail`, `instance`, and a conditional `correlationId` extension. `CorrelationIdFilter` keeps a canonical-UUID `X-Correlation-ID` from the client or generates a new one, returns it in the response header, puts it in the MDC for the duration of the request, and logs the start and completion (status and duration) of each request. Spring MVC exception handling does not automatically cover every failure in filters or the servlet container.
 
 Actuator exposes local health and metrics endpoints. `TradeMetrics` and `TransactionalTradeMetrics` separate business-event counting from post-commit success accounting. Counters are process-local unless exported to persistent monitoring infrastructure.
 

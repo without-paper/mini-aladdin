@@ -181,7 +181,7 @@ Content-Type: application/json
 
 This example documents the **exact property names** from `PortfolioValuationResponse` and `PositionValuationResponse`; calculations and rounding are illustrative, and the real response depends on stored trades and prices.
 
-A valuation requires prices for held symbols. The `MarketPriceFreshnessPolicy` rejects a timestamp that is missing, more than 24 hours old, or more than five minutes ahead of the current UTC time. `MissingMarketPriceException` and `StaleMarketPriceException` map to **409 Conflict**.
+A valuation requires a price for every open position (non-zero quantity); a fully sold symbol needs none. The `MarketPriceFreshnessPolicy` rejects a timestamp that is missing, more than 24 hours old, or more than five minutes ahead of the current UTC time. `MissingMarketPriceException` and `StaleMarketPriceException` map to **409 Conflict**; the `detail` names the affected symbol (the first in alphabetical order if several are affected), and no partial valuation is returned.
 
 ## 5. Problem Details errors
 

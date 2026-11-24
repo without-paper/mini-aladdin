@@ -48,7 +48,7 @@ The unexecuted conditions, particularly in `TradeService`, limit the assurance p
 
 **Evidence:** [LO3-E-jacoco-test-run.txt](LO3-E-jacoco-test-run.txt), [LO3-E-jacoco.csv](LO3-E-jacoco.csv).
 
-**Later stages.** The figures above remain the LO3-E baseline. The same JaCoCo configuration later measured 587/615 lines (95.4%) and 133/180 branches (73.9%) after the LO4 follow-up (121 tests; [LO4 follow-up §5](LO4-follow-up.md#5-results-after-the-actions)), and 591/615 lines (96.1%) and 136/180 branches (75.6%) after the test-code review (135 tests; [LO4 follow-up §7](LO4-follow-up.md#7-updated-structural-coverage-135-test-suite)). Both figures were unchanged after the requirement-driven review (137 tests; [LO4 follow-up §8](LO4-follow-up.md#8-third-follow-up-requirement-driven-test-review-137-tests)).
+**Later stages.** The figures above remain the LO3-E baseline. The same JaCoCo configuration later measured 587/615 lines (95.4%) and 133/180 branches (73.9%) after the LO4 follow-up (121 tests; [LO4 follow-up §5](LO4-follow-up.md#5-results-after-the-actions)), and 591/615 lines (96.1%) and 136/180 branches (75.6%) after the test-code review (135 tests; [LO4 follow-up §7](LO4-follow-up.md#7-updated-structural-coverage-135-test-suite)). After the requirement-driven review (137 tests; [LO4 follow-up §8](LO4-follow-up.md#8-third-follow-up-requirement-driven-test-review-137-tests)), the report matched the 135-test report line by line.
 
 ## 4. Fault-based / Mutation Testing (LO3-E)
 
@@ -113,7 +113,10 @@ Counts overlap because a class can check more than one requirement. The 77 tests
 
 ## 7. Evidence Index
 
+**Test runs and reports**
+
 - [Baseline test run](baseline-test-run.txt)
+- [LO2 R2 instrumentation run (69 tests)](LO2-instrumentation-test-run.txt)
 - [LO3-A functional tests](LO3-A-functional-test-run.txt)
 - [LO3-B combinatorial tests](LO3-B-combinatorial-test-run.txt)
 - [LO3-C model-based tests](LO3-C-model-based-test-run.txt)
@@ -122,18 +125,37 @@ Counts overlap because a class can check more than one requirement. The 77 tests
 - [LO3-D post-fix 97-test regression](LO3-D-rounding-after-fix.txt)
 - [LO3-E JaCoCo test run](LO3-E-jacoco-test-run.txt)
 - [LO3-E raw coverage CSV](LO3-E-jacoco.csv)
-- [LO3-E PIT log](LO3-E-pitest-run.txt)
+- [LO3-E PIT log](LO3-E-pitest-run.txt) (19/23)
+- [LO4 follow-up: 121-test run](LO4-follow-up-test-run.txt#L4995)
+- [PIT report](pit-reports/index.html) and [`mutations.xml`](pit-reports/mutations.xml) (23/23, 121-test stage)
+- [Test-code review: 135-test run](LO4-follow-up-2-test-run.txt#L6095)
+- [Test-code review: 135-test JaCoCo CSV](LO4-follow-up-2-jacoco.csv) and [XML](LO4-follow-up-2-jacoco.xml)
+- [Requirement-driven review: 137-test run](LO4-follow-up-3-test-run.txt#L7391)
+- [Requirement-driven review: 137-test JaCoCo CSV](LO4-follow-up-3-jacoco.csv) and [XML](LO4-follow-up-3-jacoco.xml)
+
+**Performance and review evidence**
+
 - [LO3-F R7 benchmark summary](LO3-F-r7-run.txt)
 - [LO3-F raw latency measurements](r7-F1F66185-raw.csv)
 - [LO3-F per-run statistics](r7-F1F66185-summary.csv)
 - [LO3-F environment metadata](r7-F1F66185-environment.json)
-- [Detailed LO3 test design](LO3-test-design.md)
-- [LO4 follow-up: branch classification, new tests, results](LO4-follow-up.md)
 - [R7 statistical analysis](LO4-R7-statistics.txt) (script: `performance/r7_statistics.py`)
-- [LO4 follow-up: 121-test run](LO4-follow-up-test-run.txt)
-- [Test-code review: 135-test run](LO4-follow-up-2-test-run.txt)
-- [Test-code review: 135-test JaCoCo CSV](LO4-follow-up-2-jacoco.csv) and [XML](LO4-follow-up-2-jacoco.xml)
-- [Requirement-driven review: 137-test run](LO4-follow-up-3-test-run.txt#L7391)
-- [Requirement-driven review: 137-test JaCoCo CSV](LO4-follow-up-3-jacoco.csv) and [XML](LO4-follow-up-3-jacoco.xml)
-- CI runs on the 137-test suite with the database-recovery check: [#44](https://github.com/without-paper/mini-aladdin/actions/runs/45266517282) (commit `910bffd`, first run) and [#45](https://github.com/without-paper/mini-aladdin/actions/runs/45268324572) (commit `da65df9`)
-- CI runs on the 135-test suite: [#41](https://github.com/without-paper/mini-aladdin/actions/runs/45089342461) (commit `4ab1008`, first run) and [#42](https://github.com/without-paper/mini-aladdin/actions/runs/45209278587) (commit `8b29ea8`, last 135-test revision)
+- [R7 correlation-ID validation: raw data](LO2-R7-correlation-validation-raw.csv) and [summary](LO2-R7-correlation-validation-summary.csv) (5 requests)
+- [RV-01 benchmark fix verification](LO5-RV01-verification.txt)
+
+**Documents**
+
+- [LO1 requirements and test strategy](LO1-requirements.md)
+- [LO2 test plan](LO2-test-plan.md)
+- [Detailed LO3 test design](LO3-test-design.md)
+- [LO4 evaluation (97-test stage)](LO4-evaluation.md)
+- [LO4 follow-up: branch classification, new tests, results and later reviews](LO4-follow-up.md)
+- [LO5 review and automation](LO5-review-and-automation.md) and [database recovery experiment](LO5-recovery-experiment.md)
+
+**CI runs** (GitHub Actions)
+
+- 137-test suite with the database-recovery check: [#44](https://github.com/without-paper/mini-aladdin/actions/runs/45266517282) (commit `910bffd`, first run), [#45](https://github.com/without-paper/mini-aladdin/actions/runs/45268324572) (`da65df9`) and [#46](https://github.com/without-paper/mini-aladdin/actions/runs/45312301206) (`8258fdd`)
+- 135-test suite: [#41](https://github.com/without-paper/mini-aladdin/actions/runs/45089342461) (commit `4ab1008`, first run) and [#42](https://github.com/without-paper/mini-aladdin/actions/runs/45209278587) (commit `8b29ea8`, last 135-test revision)
+- Deployment smoke gate: [failed run](https://github.com/without-paper/mini-aladdin/actions/runs/44584149919) (image built but not loaded), [first successful run](https://github.com/without-paper/mini-aladdin/actions/runs/44586139842) (121 tests) and a [later successful run](https://github.com/without-paper/mini-aladdin/actions/runs/44589827668)
+- RV-06: [build failure](https://github.com/without-paper/mini-aladdin/actions/runs/44336798829) caused by the TestNG dependency and the [run after its removal](https://github.com/without-paper/mini-aladdin/actions/runs/44342089420)
+- D-02: [failing run](https://github.com/without-paper/mini-aladdin/actions/runs/43997022868) (97 tests, 2 failures; image build skipped) and [post-fix run](https://github.com/without-paper/mini-aladdin/actions/runs/44002109303)

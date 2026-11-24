@@ -65,7 +65,7 @@ Never run two database containers simultaneously against the same data directory
 ./mvnw clean verify
 ```
 
-Testcontainers-based tests require Docker but **do not** require the application's local Compose database as a testing backend: they create isolated PostgreSQL containers. The CI workflow also uses Docker for Testcontainers, then builds the application image only after tests succeed.
+Testcontainers-based tests require Docker but **do not** require the application's local Compose database as a testing backend: they create isolated PostgreSQL containers. The CI workflow also uses Docker for Testcontainers, then builds the application image only after tests succeed and runs `scripts/ci-smoke.sh` and `scripts/ci-recovery.sh` against it (see the README's CI section).
 
 ## 5. Docker commands
 

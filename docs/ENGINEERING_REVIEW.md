@@ -16,7 +16,7 @@ The project is an **educational prototype, not production-ready trading infrastr
 | Idempotency | Portfolio-scoped key lookup after lock, canonical SHA-256 fingerprint, 200 replay / 409 conflict | No independent persistent result for a rejected request |
 | Valuation policy | DTOs expose cost, market values, P&L; quote timestamps must satisfy 24h age / 5m future skew | Simplified accounting and simulated prices |
 | Errors | RFC 9457 `ProblemDetail` with explicit `about:blank`, mapped 400/404/409/500 | Filter/container-level failures may bypass MVC advice |
-| CI and delivery | Testcontainers, Java 21 Maven CI, Docker build, Compose deployments were exercised during development | Current Compose is designed around an existing external volume |
+| CI and delivery | Testcontainers, Java 21 Maven CI, Docker build, Compose deployments were exercised during development; CI smoke-tests the built image and checks database failure and recovery | Current Compose is designed around an existing external volume |
 
 ## Release blocker: incorrect replay counter
 
@@ -66,7 +66,7 @@ Remove the later call to `tradeMetrics.recordReplayed()` from the **new-trade** 
 
 ## Acceptance tests for v1.0.0
 
-> **Status (23 Nov 2026):** no `v1.0.0` release has been made, and the coursework branch is not a release. The ticked items are done; the others remain the gate for a future release. On the coursework branch the full test suite (137 tests, including Testcontainers) and both CI jobs, including the database failure-and-recovery check, pass ([CI run #44](https://github.com/without-paper/mini-aladdin/actions/runs/45266517282)), but not on a tagged release commit.
+> **Status (23 Nov 2026):** no `v1.0.0` release has been made, and the coursework branch is not a release. The ticked items are done; the others remain the gate for a future release. On the coursework branch the full test suite (137 tests, including Testcontainers) and both CI jobs, including the database failure-and-recovery check, pass (CI runs [#44](https://github.com/without-paper/mini-aladdin/actions/runs/45266517282) to [#46](https://github.com/without-paper/mini-aladdin/actions/runs/45312301206)), but not on a tagged release commit.
 
 - [x] Fix and test the replay-counter defect identified above (commit `b66b0f5`; covered by `TradeMetricsTest` and the counter checks in `TradeIdempotencyConcurrencyIntegrationTest`).
 - [x] Confirm actual `pom.xml` project version and decide whether to set `1.0.0` before tagging (`pom.xml` is already `1.0.0`).

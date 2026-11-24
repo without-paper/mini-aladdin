@@ -30,7 +30,7 @@ These stakeholders represent the intended users and maintainers of the education
 | R8 | Request identifiers, diagnostic logs and trade metrics shall enable maintainers to trace requests and distinguish committed, rejected and replayed trades. | Qualitative diagnosability | Operator |
 
 
-**R2 Refinement — Rejected Requests:** A trade request rejected by a business rule shall not persist an idempotency-key binding. A subsequent valid request using the same key may execute normally, provided no successful trade has since bound that key to a different request.
+**R2 Refinement — Rejected Requests:** A trade request rejected by a business rule or by request validation shall not persist an idempotency-key binding (the validation case was made explicit, and tested by R6-E1, in the [third review](LO4-follow-up.md#8-third-follow-up-requirement-driven-test-review-137-tests)). A subsequent valid request using the same key may execute normally, provided no successful trade has since bound that key to a different request.
 
 **R6 refinement — Server errors (added after LO4):** An unexpected server-side failure shall return HTTP 500 Problem Details with a generic message, no internal exception detail, and the request's correlation ID. This is the only security-related requirement in scope: it prevents leaking implementation details to clients.
 
