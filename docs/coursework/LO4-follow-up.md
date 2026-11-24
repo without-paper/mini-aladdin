@@ -55,6 +55,8 @@ Reproduce with `python performance/r7_statistics.py docs/coursework/r7-F1F66185-
 
 Evidence: [121-test `mvnw clean verify` run](LO4-follow-up-test-run.txt#L4995) (`BUILD SUCCESS`; JaCoCo from the same run) and the [PIT report](pit-reports/index.html) ([`mutations.xml`](pit-reports/mutations.xml)), produced with the unchanged PIT configuration.
 
+The JaCoCo CSV and XML of this run were not kept in the repository. The log shows that JaCoCo generated its report ([line 5006](LO4-follow-up-test-run.txt#L5006)), but the line and branch figures below cannot be re-derived from committed files. The next committed coverage reports are the 135-test CSV and XML (§7).
+
 | Measure | Before | After | Target (§2) met? |
 |---|---|---|---|
 | Tests (passed / total) | 97 / 97 | **121 / 121** | — |

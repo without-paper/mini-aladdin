@@ -1,6 +1,6 @@
 # LO4 — Evaluation of Testing Limitations
 
-> **Status:** written at the 97-test LO3-E stage (17 November 2026). Its proposals were acted on in the [LO4 follow-up](LO4-follow-up.md) (121 tests) and the later test-code review (135 tests). The figures below are kept unchanged as the record of that stage.
+> **Status:** written at the 97-test LO3-E stage (17 November 2026). Its proposals were acted on in the [LO4 follow-up](LO4-follow-up.md) (121 tests), the later test-code review (135 tests) and the [requirement-driven review](LO4-follow-up.md#8-third-follow-up-requirement-driven-test-review-137-tests) (137 tests). The figures below are kept unchanged as the record of that stage.
 
 ## 1. Evaluation Scope
 

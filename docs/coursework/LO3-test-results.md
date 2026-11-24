@@ -135,5 +135,5 @@ Counts overlap because a class can check more than one requirement. The 77 tests
 - [Test-code review: 135-test JaCoCo CSV](LO4-follow-up-2-jacoco.csv) and [XML](LO4-follow-up-2-jacoco.xml)
 - [Requirement-driven review: 137-test run](LO4-follow-up-3-test-run.txt#L7391)
 - [Requirement-driven review: 137-test JaCoCo CSV](LO4-follow-up-3-jacoco.csv) and [XML](LO4-follow-up-3-jacoco.xml)
-- CI run on the 137-test suite with the database-recovery check: [#44](https://github.com/without-paper/mini-aladdin/actions/runs/45266517282) (commit `910bffd`)
-- CI runs on the 135-test suite: [#41](https://github.com/without-paper/mini-aladdin/actions/runs/45089342461) (commit `4ab1008`, first run) and [#42](https://github.com/without-paper/mini-aladdin/actions/runs/45209278587) (commit `8b29ea8`, final code and tests)
+- CI runs on the 137-test suite with the database-recovery check: [#44](https://github.com/without-paper/mini-aladdin/actions/runs/45266517282) (commit `910bffd`, first run) and [#45](https://github.com/without-paper/mini-aladdin/actions/runs/45268324572) (commit `da65df9`)
+- CI runs on the 135-test suite: [#41](https://github.com/without-paper/mini-aladdin/actions/runs/45089342461) (commit `4ab1008`, first run) and [#42](https://github.com/without-paper/mini-aladdin/actions/runs/45209278587) (commit `8b29ea8`, last 135-test revision)
